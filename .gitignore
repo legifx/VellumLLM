@@ -1,0 +1,58 @@
+# --- Secrets & local config (NEVER commit) ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.p12
+secrets/
+config.local.*
+config.yaml
+!config.example.yaml
+
+# --- User data: sources, derived artifacts, indexes (stay local) ---
+data/
+uploads/
+sources/
+cache/
+.cache/
+*.db
+*.sqlite
+*.sqlite3
+vectorstore/
+index/
+transcripts/
+embeddings/
+models/
+*.npy
+
+# --- Logs ---
+logs/
+*.log
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# --- Node / frontend tooling (if ever added) ---
+node_modules/
+dist/
+build/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

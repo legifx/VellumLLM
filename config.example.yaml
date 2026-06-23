@@ -1,0 +1,31 @@
+# Local NotebookLM — example config file.
+# Copy to `config.yaml` (gitignored) to override defaults without env vars.
+# Environment variables (see .env.example) always take precedence over this file.
+# Contains ONLY placeholders — never put secrets here.
+
+server:
+  host: 127.0.0.1
+  port: 8008
+  data_dir: data
+
+cli:
+  # claude-code | hermes | codex | command
+  adapter: claude-code
+  timeout: 120
+  # Only for the "command" adapter:
+  # command: my-llm-cli --stdin
+
+embeddings:
+  # sentence-transformers | hashing
+  backend: hashing
+  st_model: sentence-transformers/all-MiniLM-L6-v2
+
+transcription:
+  # faster-whisper | whisper | disabled
+  backend: disabled
+  whisper_model: base
+
+retrieval:
+  top_k: 6
+  chunk_size: 1000
+  chunk_overlap: 150

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Pre-commit hook for Local NotebookLM.
+# Blocks commits that contain secrets, PII, or gitignored data directories.
+# Install with: bash scripts/install-hooks.sh
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+PY=python3
+command -v python3.11 >/dev/null 2>&1 && PY=python3.11
+
+# 1) Hard block: never allow these to be staged.
+BLOCKED_REGEX='(^|/)(\.env$|\.env\..*(?<!example)$|.*\.key$|.*\.pem$|secrets/|data/|uploads/|sources/|cache/|vectorstore/|index/|transcripts/|embeddings/|.*\.sqlite3?$|.*\.db$)'
+STAGED=$(git diff --cached --name-only)
+if echo "$STAGED" | grep -nE "$BLOCKED_REGEX" >/dev/null 2>&1; then
+  echo "✗ Refusing to commit: a blocked (secret/data) path is staged:"
+  echo "$STAGED" | grep -E "$BLOCKED_REGEX" | sed 's/^/    /'
+  echo "  These belong in .gitignore. Unstage them before committing."
+  exit 1
+fi
+
+# 2) Run the secret/PII scanner on staged content.
+if ! "$PY" scripts/secret_scan.py; then
+  echo "  Commit aborted by secret scan."
+  exit 1
+fi
+
+echo "✓ Pre-commit checks passed."
