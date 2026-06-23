@@ -1,0 +1,12 @@
+# Core runtime — intentionally light. Heavy ML deps live in
+# requirements-optional.txt and are only needed for semantic embeddings,
+# OCR, or audio/video transcription.
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.29,<1.0
+pydantic>=2.6,<3.0
+numpy>=1.26
+pyyaml>=6.0
+pypdf>=4.0
+Pillow>=10.0
+python-docx>=1.1
+python-pptx>=0.6.23

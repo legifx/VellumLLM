@@ -1,0 +1,13 @@
+# Optional, heavier capabilities. Install only what you need.
+
+# --- Real semantic embeddings (set MMRAG_EMBEDDER=sentence-transformers) ---
+sentence-transformers>=2.7
+
+# --- Audio/video transcription (set MMRAG_TRANSCRIBER=faster-whisper) ---
+# Requires ffmpeg on PATH.
+faster-whisper>=1.0
+
+# --- OCR for scanned PDFs and text-in-images ---
+# Also install the system packages: tesseract-ocr and poppler-utils.
+pytesseract>=0.3.10
+pdf2image>=1.17
