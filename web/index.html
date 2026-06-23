@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Local NotebookLM</title>
+  <link rel="stylesheet" href="/static/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">📓 Local NotebookLM</div>
+    <div class="meta" id="meta">connecting…</div>
+    <button id="theme-toggle" class="ghost" title="Toggle theme">◐</button>
+  </header>
+
+  <main class="layout">
+    <!-- Sources -->
+    <section class="panel sources">
+      <h2>Sources</h2>
+      <form id="add-form" class="add-form">
+        <input id="path-input" type="text" placeholder="Paste a folder or file path…" />
+        <button type="submit">Add</button>
+      </form>
+      <p class="hint">Folders are scanned recursively. All data stays local.</p>
+      <ul id="source-list" class="source-list"></ul>
+    </section>
+
+    <!-- Chat -->
+    <section class="panel chat">
+      <h2>Chat <span class="subtle">— answers come only from your sources</span></h2>
+      <div id="messages" class="messages"></div>
+      <form id="chat-form" class="chat-form">
+        <textarea id="chat-input" rows="2" placeholder="Ask a question about your sources…"></textarea>
+        <button type="submit" id="send-btn">Send</button>
+      </form>
+    </section>
+
+    <!-- Citations -->
+    <section class="panel citations">
+      <h2>Citations</h2>
+      <div id="citations" class="citation-list">
+        <p class="hint">Citations for the latest answer appear here.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

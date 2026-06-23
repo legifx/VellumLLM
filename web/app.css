@@ -1,0 +1,89 @@
+:root {
+  --bg: #0f1115; --panel: #171a21; --panel-2: #1f2430; --border: #2a3040;
+  --text: #e6e9ef; --muted: #99a0b0; --accent: #6ea8fe; --accent-2: #2b6cb0;
+  --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
+}
+[data-theme="light"] {
+  --bg: #f6f7f9; --panel: #ffffff; --panel-2: #eef1f5; --border: #d9dee7;
+  --text: #1a1d24; --muted: #5b6472; --accent: #2b6cb0; --accent-2: #6ea8fe;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  height: 100vh; display: flex; flex-direction: column;
+}
+.topbar {
+  display: flex; align-items: center; gap: 16px; padding: 10px 18px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.brand { font-weight: 700; font-size: 17px; }
+.meta { color: var(--muted); font-size: 13px; margin-left: auto; }
+.ghost { background: transparent; border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+
+.layout {
+  flex: 1; display: grid; grid-template-columns: 300px 1fr 320px;
+  gap: 12px; padding: 12px; overflow: hidden;
+}
+.panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px; display: flex; flex-direction: column; overflow: hidden;
+}
+.panel h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted); }
+.subtle { text-transform: none; letter-spacing: 0; color: var(--muted); font-weight: 400; }
+.hint { color: var(--muted); font-size: 12px; margin: 6px 0; }
+
+.add-form { display: flex; gap: 6px; }
+.add-form input { flex: 1; min-width: 0; }
+input, textarea, button {
+  font: inherit; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--panel-2); color: var(--text); padding: 8px 10px;
+}
+button { background: var(--accent-2); border-color: transparent; color: #fff;
+  cursor: pointer; font-weight: 600; }
+button:hover { filter: brightness(1.08); }
+button:disabled { opacity: .5; cursor: default; }
+
+.source-list { list-style: none; margin: 8px 0 0; padding: 0; overflow-y: auto; }
+.source-item {
+  border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
+  margin-bottom: 8px; background: var(--panel-2);
+}
+.source-item .row { display: flex; align-items: center; gap: 8px; }
+.source-item .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; flex: 1; }
+.source-item .sub { color: var(--muted); font-size: 12px; display: flex;
+  justify-content: space-between; margin-top: 4px; }
+.badge { font-size: 11px; padding: 1px 7px; border-radius: 999px; }
+.badge.ready { background: rgba(74,222,128,.15); color: var(--ok); }
+.badge.processing, .badge.pending { background: rgba(251,191,36,.15); color: var(--warn); }
+.badge.error { background: rgba(248,113,113,.15); color: var(--err); }
+.badge.disabled { background: var(--border); color: var(--muted); }
+.icon-btn { background: transparent; border: none; color: var(--muted);
+  padding: 2px 4px; font-size: 13px; }
+
+.chat { }
+.messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+  padding-right: 6px; }
+.msg { padding: 10px 12px; border-radius: 12px; max-width: 90%; white-space: pre-wrap;
+  word-wrap: break-word; }
+.msg.user { align-self: flex-end; background: var(--accent-2); color: #fff; }
+.msg.assistant { align-self: flex-start; background: var(--panel-2);
+  border: 1px solid var(--border); }
+.msg .cite { color: var(--accent); cursor: pointer; font-weight: 600; }
+.chat-form { display: flex; gap: 8px; margin-top: 10px; }
+.chat-form textarea { flex: 1; resize: vertical; }
+
+.citation-list { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.citation {
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px;
+  background: var(--panel-2);
+}
+.citation .marker { color: var(--accent); font-weight: 700; }
+.citation .src { font-weight: 600; font-size: 13px; }
+.citation .loc { color: var(--muted); font-size: 12px; }
+.citation .snippet { color: var(--muted); font-size: 12px; margin-top: 6px; }
+.citation.flash { outline: 2px solid var(--accent); }
+.error-banner { color: var(--err); font-size: 13px; }
