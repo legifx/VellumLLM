@@ -87,3 +87,9 @@ button:disabled { opacity: .5; cursor: default; }
 .citation .snippet { color: var(--muted); font-size: 12px; margin-top: 6px; }
 .citation.flash { outline: 2px solid var(--accent); }
 .error-banner { color: var(--err); font-size: 13px; }
+.banner {
+  background: rgba(251,191,36,.12); border: 1px solid var(--warn);
+  color: var(--text); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px;
+  font-size: 12px; line-height: 1.4;
+}
+.banner button { margin-top: 6px; padding: 4px 10px; font-size: 12px; }

@@ -33,11 +33,25 @@ secrets in either — this project needs none.
 
 ## CLI adapter notes
 
-- **claude-code** — runs `claude -p` (non-interactive print mode), prompt on stdin.
-- **hermes** — runs `hermes ask -`, prompt on stdin.
-- **codex** — runs `codex exec -`, prompt on stdin.
-- **command** — runs `MMRAG_CLI_COMMAND` verbatim, prompt on stdin, answer from
-  stdout. Use this for any other local LLM CLI.
+- **claude-code** *(verified)* — runs `claude -p` (non-interactive print mode),
+  prompt on stdin.
+- **hermes** *(unverified default)* — runs `hermes ask -`, prompt on stdin.
+- **codex** *(unverified default)* — runs `codex exec -`, prompt on stdin.
+- **command** *(recommended when in doubt)* — runs `MMRAG_CLI_COMMAND` verbatim,
+  prompt on stdin, answer from stdout. Use this for any other local LLM CLI.
+
+> The `hermes` and `codex` invocations are reasonable defaults, but the exact
+> sub-command and flags differ between releases of those tools (and "Hermes" is
+> an ambiguous name). If chat fails or behaves oddly, check the real one-shot
+> syntax for *your* CLI, or just use the `command` adapter:
+>
+> ```bash
+> export MMRAG_CLI_ADAPTER=command
+> export MMRAG_CLI_COMMAND="your-cli <one-shot-flags>"   # reads stdin, writes stdout
+> ```
+>
+> You can also override just the binary name without changing the invocation
+> shape via `MMRAG_HERMES_BIN` / `MMRAG_CODEX_BIN` / `MMRAG_CLAUDE_BIN`.
 
 If the configured CLI is not on `PATH`, `/api/config` reports
 `adapter_available: false` and chat returns a clear error explaining what to set
@@ -57,3 +71,20 @@ export MMRAG_TRANSCRIBER=faster-whisper
 # OCR (needs system tesseract + poppler-utils)
 pip install pytesseract pdf2image
 ```
+
+## Changing the embedder (important)
+
+Different embedders produce vectors of different dimensions (e.g. the hashing
+embedder is 256-d, `all-MiniLM-L6-v2` is 384-d). The vector index can only
+compare vectors of the same dimension, so after you change `MMRAG_EMBEDDER`:
+
+- Sources embedded with the *old* model are automatically **excluded from
+  search** — they are never silently mixed in, and search will not crash.
+- `GET /api/config` reports `needs_reprocess: true` and `stale_source_ids`.
+- The UI shows a **"Reprocess all"** banner. Click it, or call:
+
+  ```bash
+  curl -X POST http://127.0.0.1:8008/api/sources/reprocess-all
+  ```
+
+This re-embeds every source with the current model so they rejoin the index.

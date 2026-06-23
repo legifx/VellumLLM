@@ -146,24 +146,29 @@ class Store:
             )
             self._conn.commit()
 
-    def _load_matrix(self, source_ids: list[int] | None):
-        """Return (chunks, embedding_matrix) for enabled sources."""
+    def _load_matrix(self, source_ids: list[int] | None, expected_dim: int):
+        """Return (chunks, matrix, meta) for enabled, ready chunks.
+
+        Only chunks whose stored dimension matches ``expected_dim`` are loaded.
+        This makes search robust when the embedder was changed: stale-dimension
+        chunks are ignored (and should be reprocessed) instead of crashing on a
+        shape mismatch.
+        """
         q = (
             "SELECT c.id, c.source_id, c.ordinal, c.text, c.modality, c.locator, "
             "c.dim, c.embedding, s.name AS sname, s.path AS spath "
             "FROM chunks c JOIN sources s ON s.id=c.source_id "
-            "WHERE s.enabled=1 AND s.status='ready'"
+            "WHERE s.enabled=1 AND s.status='ready' AND c.dim=?"
         )
-        params: list = []
+        params: list = [expected_dim]
         if source_ids:
             placeholders = ",".join("?" * len(source_ids))
             q += f" AND c.source_id IN ({placeholders})"
             params.extend(source_ids)
         rows = self._conn.execute(q, params).fetchall()
         if not rows:
-            return [], np.zeros((0, 0), dtype=np.float32), []
-        dim = rows[0]["dim"]
-        mat = np.zeros((len(rows), dim), dtype=np.float32)
+            return [], np.zeros((0, expected_dim), dtype=np.float32), []
+        mat = np.zeros((len(rows), expected_dim), dtype=np.float32)
         chunks, meta = [], []
         for i, r in enumerate(rows):
             mat[i] = np.frombuffer(r["embedding"], dtype=np.float32)
@@ -172,12 +177,29 @@ class Store:
             meta.append((r["sname"], r["spath"]))
         return chunks, mat, meta
 
+    def distinct_chunk_dims(self) -> list[int]:
+        """Distinct embedding dimensions present among ready chunks."""
+        rows = self._conn.execute(
+            "SELECT DISTINCT c.dim FROM chunks c JOIN sources s ON s.id=c.source_id "
+            "WHERE s.status='ready'"
+        ).fetchall()
+        return sorted(r["dim"] for r in rows)
+
+    def stale_source_ids(self, expected_dim: int) -> list[int]:
+        """Ready sources whose chunks were embedded with a different dimension."""
+        rows = self._conn.execute(
+            "SELECT DISTINCT c.source_id FROM chunks c JOIN sources s ON s.id=c.source_id "
+            "WHERE s.status='ready' AND c.dim<>?",
+            (expected_dim,),
+        ).fetchall()
+        return sorted(r["source_id"] for r in rows)
+
     def search(self, query_vec: np.ndarray, top_k: int,
                source_ids: list[int] | None = None) -> list[RetrievedChunk]:
-        chunks, mat, meta = self._load_matrix(source_ids)
+        q = query_vec.astype(np.float32).reshape(-1)
+        chunks, mat, meta = self._load_matrix(source_ids, expected_dim=int(q.shape[0]))
         if not chunks:
             return []
-        q = query_vec.astype(np.float32).reshape(-1)
         scores = mat @ q  # vectors are L2-normalized -> dot == cosine
         order = np.argsort(-scores)[:top_k]
         results = []

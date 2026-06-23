@@ -28,8 +28,9 @@ Everything runs locally; the model is reached through your own CLI.
 
 1. Starts a local server with a browser UI (default <http://127.0.0.1:8008>).
 2. The user adds **folders or files** as sources; an ingestion pipeline extracts
-   text (PDF/OCR, image caption/OCR, audio transcription, video keyframes +
-   transcription), chunks it, and stores embeddings in a **local** vector store.
+   text (PDF text/OCR, image OCR + filename caption, audio transcription, video
+   keyframes + transcription), chunks it, and stores embeddings in a **local**
+   vector store. (Images are matched via OCR'd text/caption, not a vision model.)
 3. The user chats; the server retrieves the most relevant chunks, builds a
    **strictly source-bound prompt**, and sends it to the configured CLI
    (`claude-code` / `hermes` / `codex` / generic `command`).

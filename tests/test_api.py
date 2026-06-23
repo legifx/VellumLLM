@@ -56,6 +56,35 @@ def test_chat_without_matching_sources_is_grounded(tmp_path, fake_cli):
     assert "not covered by the provided sources" in body
 
 
+def test_reprocess_all_clears_stale_after_embedder_switch(tmp_path, fake_cli, sample_txt):
+    import numpy as np
+
+    from server.config import Config
+    from server.store import Store
+
+    data_dir = tmp_path / "data"
+    # 1) ingest under a 64-dim embedder by writing a stale chunk directly.
+    cfg = Config(data_dir=data_dir, cli_adapter="command", cli_command=fake_cli,
+                 embedder="hashing")  # hashing default dim = 256
+    client = TestClient(create_app(cfg))
+    sid = client.post("/api/sources", json={"paths": [str(sample_txt)]}).json()["added"][0]["id"]
+    _wait_ready(client, sid)
+
+    # Inject a stale-dimension chunk (simulating a previous, different embedder).
+    store = Store(cfg.db_path)
+    from server.models import Chunk
+    store.replace_chunks(sid, [Chunk(source_id=sid, ordinal=0, text="x", modality="document")],
+                         np.zeros((1, 64), dtype="float32"))
+
+    cfg2 = client.get("/api/config").json()
+    assert cfg2["needs_reprocess"] is True
+    assert sid in cfg2["stale_source_ids"]
+
+    client.post("/api/sources/reprocess-all")
+    _wait_ready(client, sid)
+    assert client.get("/api/config").json()["needs_reprocess"] is False
+
+
 def test_enable_disable_and_delete(tmp_path, fake_cli, sample_txt):
     client = _client(tmp_path, fake_cli)
     sid = client.post("/api/sources", json={"paths": [str(sample_txt)]}).json()["added"][0]["id"]

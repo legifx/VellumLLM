@@ -14,10 +14,33 @@ async function loadConfig() {
     const ok = cfg.adapter_available;
     $("#meta").innerHTML =
       `CLI: <b>${cfg.cli_adapter}</b> ${ok ? "✓" : "⚠ not found"} · ` +
-      `embedder: ${cfg.embedder} · transcriber: ${cfg.transcriber}`;
+      `embedder: ${cfg.embedder} (dim ${cfg.embedder_dim}) · transcriber: ${cfg.transcriber}`;
+    renderReprocessBanner(cfg.needs_reprocess, (cfg.stale_source_ids || []).length);
   } catch {
     $("#meta").textContent = "server unreachable";
   }
+}
+
+// Shown when sources were embedded with a different dimension than the current
+// embedder (e.g. after switching MMRAG_EMBEDDER). Those sources are excluded
+// from search until reprocessed.
+function renderReprocessBanner(needs, count) {
+  let banner = $("#reprocess-banner");
+  if (!needs) { if (banner) banner.remove(); return; }
+  if (!banner) {
+    banner = document.createElement("div");
+    banner.id = "reprocess-banner";
+    banner.className = "banner";
+    $(".sources").insertBefore(banner, $("#source-list"));
+  }
+  banner.innerHTML =
+    `⚠ ${count} source(s) were embedded with a different model and are excluded ` +
+    `from search. <button id="reprocess-all-btn">Reprocess all</button>`;
+  $("#reprocess-all-btn").onclick = async () => {
+    await api("/api/sources/reprocess-all", { method: "POST" });
+    refreshSources();
+    setTimeout(loadConfig, 1500);
+  };
 }
 
 // ---------- sources ----------
@@ -65,6 +88,7 @@ async function refreshSources() {
   // Poll while anything is still processing.
   clearTimeout(pollTimer);
   if (anyBusy) pollTimer = setTimeout(refreshSources, 1200);
+  else loadConfig();  // refresh the stale-embedder banner once ingestion settles
 }
 
 $("#add-form").onsubmit = async (e) => {

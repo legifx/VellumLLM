@@ -55,14 +55,20 @@ def create_app(cfg: Config | None = None) -> FastAPI:
     def get_config():
         from .cli_bridge import available_adapters
         adapter = build_adapter(cfg)
+        stale = state.store.stale_source_ids(state.embedder.dim)
         return {
             "cli_adapter": cfg.cli_adapter,
             "available_adapters": available_adapters(),
             "adapter_available": adapter.available(),
             "embedder": cfg.embedder,
+            "embedder_dim": state.embedder.dim,
             "transcriber": cfg.transcriber,
             "top_k": cfg.top_k,
             "supported_extensions": sorted(ingest_mod.SUPPORTED),
+            # Sources embedded with a different dimension than the current
+            # embedder; they are excluded from search until reprocessed.
+            "stale_source_ids": stale,
+            "needs_reprocess": bool(stale),
         }
 
     # ---- sources ---------------------------------------------------------
@@ -88,6 +94,15 @@ def create_app(cfg: Config | None = None) -> FastAPI:
             raise HTTPException(404, "Source not found")
         state.process_async(source_id, force=True)
         return {"status": "processing"}
+
+    @app.post("/api/sources/reprocess-all")
+    def reprocess_all():
+        """Force re-ingestion of every source. Use after changing the embedder
+        so all chunks share the current embedding dimension."""
+        ids = [s.id for s in state.store.list_sources()]
+        for sid in ids:
+            state.process_async(sid, force=True)
+        return {"reprocessing": ids}
 
     @app.patch("/api/sources/{source_id}")
     def update_source(source_id: int, body: dict):

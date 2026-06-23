@@ -19,10 +19,11 @@ Coding/agent CLIs (Claude Code, Hermes, Codex) are great at answering questions 
 - 🗂 **Pick sources from your machine** — folders or individual files, via the web UI.
 - 🧩 **Multimodal ingestion**
   - **Documents:** `.pdf`, `.txt`, `.md`, `.docx`, `.pptx`, `.csv`, `.html` (PDF OCR fallback for scans)
-  - **Images:** `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif` (captioning / OCR)
+  - **Images:** `.png`, `.jpg`, `.jpeg`, `.webp`, `.gif` (OCR of in-image text + a filename/metadata caption; **no vision-model understanding yet** — see [limitations](#limitations))
   - **Audio:** `.mp3`, `.wav`, `.m4a`, `.flac` (transcription)
   - **Video:** `.mp4`, `.mov`, `.mkv` (keyframes + audio transcription)
 - 🔎 **Local vector store** — SQLite + NumPy by default. No external service, no paid DB.
+- 🧠 **Embeddings, your choice** — a dependency-free **lexical** hashing embedder by default (keyword-style matching, instant, no downloads), or real **semantic** embeddings via the optional `sentence-transformers` backend.
 - ♻️ **Incremental** — files are hashed; unchanged files are not re-processed.
 - 💬 **Source-grounded chat** — strict system prompt; out-of-source questions are marked *"not in the sources."*
 - 📌 **Citations** — every answer references file + page/timestamp; clickable in the UI.
@@ -107,6 +108,14 @@ This repo is also a **skill**. Drop it where your CLI looks for skills (e.g.
 The active CLI adapter is chosen with `MMRAG_CLI_ADAPTER`
 (`claude-code` | `hermes` | `codex` | `command`).
 
+> **Adapter status:** the `claude-code` adapter (`claude -p`) is verified. The
+> `hermes` and `codex` invocations are reasonable defaults but **not verified
+> against every version** of those tools — flags differ between releases. If
+> your CLI uses a different syntax, the most reliable option is the generic
+> `command` adapter: set `MMRAG_CLI_COMMAND` to any CLI that reads a prompt on
+> stdin and writes the answer to stdout. See
+> [`references/configuration.md`](references/configuration.md).
+
 ---
 
 ## Supported file types
@@ -114,9 +123,9 @@ The active CLI adapter is chosen with `MMRAG_CLI_ADAPTER`
 | Modality | Extensions | How it's processed |
 |----------|------------|--------------------|
 | Documents | pdf, txt, md, docx, pptx, csv, html | text extraction (+OCR fallback for scanned PDFs) |
-| Images | png, jpg, jpeg, webp, gif | OCR + caption metadata |
+| Images | png, jpg, jpeg, webp, gif | OCR of in-image text + filename/metadata caption (no vision model) |
 | Audio | mp3, wav, m4a, flac | transcription (Whisper, optional) |
-| Video | mp4, mov, mkv | keyframes + audio transcription |
+| Video | mp4, mov, mkv | keyframes (OCR) + audio transcription |
 
 ---
 
@@ -149,6 +158,29 @@ python scripts/secret_scan.py --all
 Contributions welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
+
+## Limitations
+
+Honest about what this does and doesn't do today:
+
+- **Default embeddings are lexical, not semantic.** The dependency-free hashing
+  embedder matches on shared tokens (keyword-style). For NotebookLM-grade
+  semantic recall, install `requirements-optional.txt` and set
+  `MMRAG_EMBEDDER=sentence-transformers`.
+- **Images are not "understood" by a vision model.** Ingestion does OCR
+  (text *in* the image) plus a caption built from the filename and dimensions.
+  Images are therefore findable and citable via any text they contain, but a
+  photo with no text carries little signal. True visual understanding would
+  require adding a vision model to the ingestion step (a planned extension
+  point — see `server/ingest/images.py`).
+- **CLI adapters beyond `claude-code` are unverified** across tool versions; use
+  the generic `command` adapter if flags differ (see above).
+- **Switching the embedder changes the vector dimension.** Sources embedded with
+  the old model are automatically **excluded from search** (no crash) and shown
+  with a "Reprocess all" prompt in the UI. Click it — or `POST
+  /api/sources/reprocess-all` — to re-embed everything with the current model.
+- **No authentication.** The server is localhost-only by design; don't expose it
+  to an untrusted network.
 
 ## FAQ
 
