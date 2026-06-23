@@ -62,8 +62,8 @@ The model is reached **through the local CLI**, not a hosted API key baked into 
 Requirements: **Python 3.10+**, and `ffmpeg` on your PATH if you want audio/video.
 
 ```bash
-git clone https://github.com/legifx/local-notebooklm.git
-cd local-notebooklm
+git clone https://github.com/legifx/VellumLLM.git
+cd VellumLLM
 
 # 1) install (creates a venv, installs core deps, sets up git hooks)
 bash scripts/start.sh
