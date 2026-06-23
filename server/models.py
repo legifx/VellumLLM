@@ -1,7 +1,7 @@
 """Pydantic schemas for the API and internal data passing."""
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -11,7 +11,7 @@ SourceStatus = Literal["pending", "processing", "ready", "error", "disabled"]
 
 class Chunk(BaseModel):
     """A retrievable unit of content with provenance."""
-    id: Optional[int] = None
+    id: int | None = None
     source_id: int
     ordinal: int
     text: str
@@ -28,7 +28,7 @@ class RetrievedChunk(BaseModel):
 
 
 class Source(BaseModel):
-    id: Optional[int] = None
+    id: int | None = None
     path: str
     name: str
     modality: Modality
@@ -50,7 +50,7 @@ class ChatRequest(BaseModel):
     message: str
     # Restrict retrieval to these source ids (empty = all enabled sources).
     source_ids: list[int] = []
-    top_k: Optional[int] = None
+    top_k: int | None = None
 
 
 class Citation(BaseModel):

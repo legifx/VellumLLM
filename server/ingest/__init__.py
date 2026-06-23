@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import time
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from ..chunking import TextPiece, chunk_pieces
 from ..config import Config

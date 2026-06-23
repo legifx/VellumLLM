@@ -1,4 +1,3 @@
-import numpy as np
 
 from server.embeddings import HashingEmbedder
 from server.models import Chunk, Source

@@ -44,7 +44,7 @@ def extract_csv(path: Path) -> list[TextPiece]:
     header = rows[0]
     body = []
     for i, row in enumerate(rows[1:], start=2):
-        cells = ", ".join(f"{h}: {v}" for h, v in zip(header, row))
+        cells = ", ".join(f"{h}: {v}" for h, v in zip(header, row, strict=False))
         body.append(cells or ", ".join(row))
         if len(body) >= 50:  # group rows into pieces for chunking
             pieces.append(TextPiece(text="\n".join(body), locator=f"rows {i-49}-{i}"))
@@ -75,8 +75,8 @@ def extract_pdf(path: Path, ocr_fallback: bool = True) -> list[TextPiece]:
 def _ocr_pdf_page(path: Path, page_index: int) -> str:
     """Best-effort OCR for a scanned PDF page. Optional deps; returns '' if absent."""
     try:
-        from pdf2image import convert_from_path
         import pytesseract
+        from pdf2image import convert_from_path
     except ImportError:
         return ""
     try:

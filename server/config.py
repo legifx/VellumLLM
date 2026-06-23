@@ -61,7 +61,7 @@ class Config:
     chunk_overlap: int = 150
 
     @classmethod
-    def load(cls, config_path: Path | None = None) -> "Config":
+    def load(cls, config_path: Path | None = None) -> Config:
         cfg_file = config_path or (PROJECT_ROOT / "config.yaml")
         y = _load_yaml(cfg_file)
         server = y.get("server", {}) or {}

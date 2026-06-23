@@ -11,7 +11,6 @@ import sqlite3
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -93,12 +92,12 @@ class Store:
             self._conn.commit()
             return sid
 
-    def get_source(self, source_id: int) -> Optional[Source]:
+    def get_source(self, source_id: int) -> Source | None:
         cur = self._conn.execute("SELECT * FROM sources WHERE id=?", (source_id,))
         row = cur.fetchone()
         return _row_to_source(row) if row else None
 
-    def get_source_by_path(self, path: str) -> Optional[Source]:
+    def get_source_by_path(self, path: str) -> Source | None:
         cur = self._conn.execute("SELECT * FROM sources WHERE path=?", (path,))
         row = cur.fetchone()
         return _row_to_source(row) if row else None
@@ -135,7 +134,7 @@ class Store:
         with self._lock:
             self._conn.execute("DELETE FROM chunks WHERE source_id=?", (source_id,))
             dim = int(embeddings.shape[1]) if embeddings.size else 0
-            for ch, vec in zip(chunks, embeddings):
+            for ch, vec in zip(chunks, embeddings, strict=False):
                 self._conn.execute(
                     "INSERT INTO chunks(source_id,ordinal,text,modality,locator,dim,embedding)"
                     " VALUES(?,?,?,?,?,?,?)",
@@ -147,7 +146,7 @@ class Store:
             )
             self._conn.commit()
 
-    def _load_matrix(self, source_ids: Optional[list[int]]):
+    def _load_matrix(self, source_ids: list[int] | None):
         """Return (chunks, embedding_matrix) for enabled sources."""
         q = (
             "SELECT c.id, c.source_id, c.ordinal, c.text, c.modality, c.locator, "
@@ -174,7 +173,7 @@ class Store:
         return chunks, mat, meta
 
     def search(self, query_vec: np.ndarray, top_k: int,
-               source_ids: Optional[list[int]] = None) -> list[RetrievedChunk]:
+               source_ids: list[int] | None = None) -> list[RetrievedChunk]:
         chunks, mat, meta = self._load_matrix(source_ids)
         if not chunks:
             return []

@@ -32,9 +32,7 @@ def test_empty_text_is_zero_then_safe():
 
 
 def test_build_embedder_factory():
+    import pytest
     assert isinstance(build_embedder("hashing", ""), HashingEmbedder)
-    try:
+    with pytest.raises(ValueError):
         build_embedder("nonsense", "")
-        assert False, "should raise"
-    except ValueError:
-        pass

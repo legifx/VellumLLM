@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import subprocess
 from abc import ABC, abstractmethod
-from typing import Iterator
+from collections.abc import Iterator
 
 
 class CLIError(RuntimeError):
@@ -48,8 +48,7 @@ class CLIAdapter(ABC):
         proc.stdin.write(prompt)
         proc.stdin.close()
         try:
-            for line in proc.stdout:
-                yield line
+            yield from proc.stdout
             proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired as exc:
             proc.kill()

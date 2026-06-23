@@ -47,7 +47,8 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("Google API key", re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
     ("Slack token", re.compile(r"\bxox[baprs]-[0-9A-Za-z\-]{10,}\b")),
     ("Stripe secret key", re.compile(r"\b[rs]k_(?:live|test)_[0-9A-Za-z]{20,}\b")),
-    ("Private key block", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----")),
+    ("Private key block",
+     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----")),
     ("JWT", re.compile(r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\b")),
     ("Bearer token", re.compile(r"\bBearer\s+[A-Za-z0-9_\-\.=]{20,}")),
     # Generic assignment of a secret-looking value (not a placeholder).
@@ -55,7 +56,9 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
         r"(?i)\b(?:api[_-]?key|secret|password|passwd|token|access[_-]?key)\b"
         r"\s*[:=]\s*['\"][^'\"\s${}<>]{12,}['\"]")),
     # Absolute home paths that would leak a username.
-    ("User home path", re.compile(r"(?:/home/(?!server\b)[A-Za-z0-9._-]+|/Users/[A-Za-z0-9._-]+|C:\\\\Users\\\\[A-Za-z0-9._-]+)")),
+    ("User home path", re.compile(
+        r"(?:/home/(?!server\b)[A-Za-z0-9._-]+|/Users/[A-Za-z0-9._-]+"
+        r"|C:\\\\Users\\\\[A-Za-z0-9._-]+)")),
     # Email addresses (PII) — exclude obviously safe example/noreply ones.
     ("Email address (possible PII)", re.compile(
         r"\b[A-Za-z0-9._%+\-]+@(?!example\.|localhost|users\.noreply\.github\.com)"

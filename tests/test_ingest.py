@@ -1,11 +1,9 @@
 from server.config import Config
 from server.embeddings import HashingEmbedder
-from server.ingest import (detect_modality, expand_paths, process_source,
-                           register_source)
-from server.ingest.documents import (extract_csv, extract_document,
-                                      extract_html, extract_pdf)
-from server.ingest.images import extract_image
+from server.ingest import detect_modality, expand_paths, process_source, register_source
 from server.ingest.audio import extract_audio
+from server.ingest.documents import extract_csv, extract_document, extract_html, extract_pdf
+from server.ingest.images import extract_image
 from server.store import Store
 
 

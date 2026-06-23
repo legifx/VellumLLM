@@ -52,9 +52,9 @@ def sample_image(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def sample_pdf(tmp_path: Path) -> Path:
-    reportlab = pytest.importorskip("reportlab")
-    from reportlab.pdfgen import canvas
+    pytest.importorskip("reportlab")
     from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
     p = tmp_path / "report.pdf"
     c = canvas.Canvas(str(p), pagesize=letter)
     c.drawString(72, 720, "Quarterly report: revenue grew by 42 percent.")

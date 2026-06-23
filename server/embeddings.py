@@ -43,7 +43,7 @@ class HashingEmbedder(Embedder):
 
     def _tokens(self, text: str) -> list[str]:
         words = _TOKEN_RE.findall(text.lower())
-        bigrams = [f"{a}_{b}" for a, b in zip(words, words[1:])]
+        bigrams = [f"{a}_{b}" for a, b in zip(words, words[1:], strict=False)]
         return words + bigrams
 
     def _hash(self, token: str) -> tuple[int, int]:
