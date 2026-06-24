@@ -1,9 +1,10 @@
 """Runtime configuration.
 
 Resolution order (highest precedence first):
-    1. Environment variables (MMRAG_*)
-    2. config.yaml in the project root (gitignored; optional)
-    3. Built-in defaults
+    1. Process environment variables (MMRAG_* / VELLUM_*)
+    2. A local .env file (written by `vellum init`; gitignored)
+    3. config.yaml in the project root (gitignored; optional)
+    4. Built-in defaults
 
 No secrets, paths, or credentials are hardcoded here. A missing required value
 raises a clear error explaining what to set — never a sample secret.
@@ -16,6 +17,33 @@ from pathlib import Path
 from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# VELLUM_* is accepted as a friendly alias for the canonical MMRAG_* names.
+_ALIAS_PREFIX = ("VELLUM_", "MMRAG_")
+
+
+def load_dotenv(path: Path | None = None) -> None:
+    """Load a simple KEY=VALUE .env into os.environ without overriding values
+    already present in the real environment. No external dependency."""
+    env_path = path or Path(os.environ.get("VELLUM_ENV_FILE", PROJECT_ROOT / ".env"))
+    if not env_path.exists():
+        return
+    for raw in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def _apply_aliases() -> None:
+    """Mirror VELLUM_X -> MMRAG_X when only the alias is set."""
+    for key in list(os.environ):
+        if key.startswith("VELLUM_"):
+            canonical = "MMRAG_" + key[len("VELLUM_"):]
+            os.environ.setdefault(canonical, os.environ[key])
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -42,6 +70,7 @@ class Config:
     host: str = "127.0.0.1"
     port: int = 8008
     data_dir: Path = field(default_factory=lambda: PROJECT_ROOT / "data")
+    language: str = "en"
 
     cli_adapter: str = "claude-code"
     cli_command: str = ""
@@ -62,6 +91,8 @@ class Config:
 
     @classmethod
     def load(cls, config_path: Path | None = None) -> Config:
+        load_dotenv()
+        _apply_aliases()
         cfg_file = config_path or (PROJECT_ROOT / "config.yaml")
         y = _load_yaml(cfg_file)
         server = y.get("server", {}) or {}
@@ -78,6 +109,7 @@ class Config:
             host=str(_get("MMRAG_HOST", server, "host", "127.0.0.1")),
             port=int(_get("MMRAG_PORT", server, "port", 8008)),
             data_dir=data_dir,
+            language=str(_get("MMRAG_LANGUAGE", server, "language", "en")),
             cli_adapter=str(_get("MMRAG_CLI_ADAPTER", cli, "adapter", "claude-code")),
             cli_command=str(_get("MMRAG_CLI_COMMAND", cli, "command", "")),
             cli_timeout=int(_get("MMRAG_CLI_TIMEOUT", cli, "timeout", 120)),
