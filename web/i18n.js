@@ -1,0 +1,43 @@
+"use strict";
+// Tiny UI string table. Server reports the chosen language via /api/config;
+// app.js calls applyLanguage(). Keep keys in sync with data-i18n attributes.
+window.I18N = {
+  en: {
+    connecting: "connecting…",
+    serverDown: "server unreachable",
+    sources: "Sources",
+    add: "Add",
+    addPlaceholder: "Paste a folder or file path…",
+    sourcesHint: "Folders are scanned recursively. All data stays local.",
+    chat: "Chat",
+    chatSub: "— answers come only from your sources",
+    chatPlaceholder: "Ask a question about your sources…",
+    send: "Send",
+    citations: "Citations",
+    citationsHint: "Citations for the latest answer appear here.",
+    noMatch: "No sources matched this question.",
+    thinking: "thinking…",
+    reprocess: (n) => `${n} source(s) were embedded with a different model and are excluded from search.`,
+    reprocessBtn: "Reprocess all",
+    chunks: "chunks",
+  },
+  de: {
+    connecting: "verbinde…",
+    serverDown: "Server nicht erreichbar",
+    sources: "Quellen",
+    add: "Hinzufügen",
+    addPlaceholder: "Ordner- oder Dateipfad einfügen…",
+    sourcesHint: "Ordner werden rekursiv eingelesen. Alle Daten bleiben lokal.",
+    chat: "Chat",
+    chatSub: "— Antworten kommen nur aus deinen Quellen",
+    chatPlaceholder: "Stelle eine Frage zu deinen Quellen…",
+    send: "Senden",
+    citations: "Belege",
+    citationsHint: "Belege zur letzten Antwort erscheinen hier.",
+    noMatch: "Keine Quelle passt zu dieser Frage.",
+    thinking: "denke nach…",
+    reprocess: (n) => `${n} Quelle(n) wurden mit einem anderen Modell eingebettet und sind von der Suche ausgeschlossen.`,
+    reprocessBtn: "Alle neu verarbeiten",
+    chunks: "Chunks",
+  },
+};

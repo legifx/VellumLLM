@@ -3,47 +3,51 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Local NotebookLM</title>
+  <title>Vellum</title>
   <link rel="stylesheet" href="/static/app.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">📓 Local NotebookLM</div>
-    <div class="meta" id="meta">connecting…</div>
+    <div class="brand">Vellum</div>
+    <div class="meta" id="meta" data-i18n="connecting">connecting…</div>
     <button id="theme-toggle" class="ghost" title="Toggle theme">◐</button>
   </header>
 
   <main class="layout">
     <!-- Sources -->
     <section class="panel sources">
-      <h2>Sources</h2>
+      <h2 data-i18n="sources">Sources</h2>
       <form id="add-form" class="add-form">
-        <input id="path-input" type="text" placeholder="Paste a folder or file path…" />
-        <button type="submit">Add</button>
+        <input id="path-input" type="text" data-i18n-ph="addPlaceholder"
+               placeholder="Paste a folder or file path…" />
+        <button type="submit" data-i18n="add">Add</button>
       </form>
-      <p class="hint">Folders are scanned recursively. All data stays local.</p>
+      <p class="hint" data-i18n="sourcesHint">Folders are scanned recursively. All data stays local.</p>
       <ul id="source-list" class="source-list"></ul>
     </section>
 
     <!-- Chat -->
     <section class="panel chat">
-      <h2>Chat <span class="subtle">— answers come only from your sources</span></h2>
+      <h2><span data-i18n="chat">Chat</span>
+        <span class="subtle" data-i18n="chatSub">— answers come only from your sources</span></h2>
       <div id="messages" class="messages"></div>
       <form id="chat-form" class="chat-form">
-        <textarea id="chat-input" rows="2" placeholder="Ask a question about your sources…"></textarea>
-        <button type="submit" id="send-btn">Send</button>
+        <textarea id="chat-input" rows="2" data-i18n-ph="chatPlaceholder"
+                  placeholder="Ask a question about your sources…"></textarea>
+        <button type="submit" id="send-btn" data-i18n="send">Send</button>
       </form>
     </section>
 
     <!-- Citations -->
     <section class="panel citations">
-      <h2>Citations</h2>
+      <h2 data-i18n="citations">Citations</h2>
       <div id="citations" class="citation-list">
-        <p class="hint">Citations for the latest answer appear here.</p>
+        <p class="hint" data-i18n="citationsHint">Citations for the latest answer appear here.</p>
       </div>
     </section>
   </main>
 
+  <script src="/static/i18n.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

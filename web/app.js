@@ -1,23 +1,41 @@
 "use strict";
-// Local NotebookLM UI. No external dependencies, no trackers, no CDN.
+// Vellum UI. No external dependencies, no trackers, no CDN.
 
 const $ = (sel) => document.querySelector(sel);
 const api = (path, opts) => fetch(path, opts);
 
 let pollTimer = null;
 let lastCitations = [];
+let lang = "en";
+const t = (key, ...args) => {
+  const v = (window.I18N[lang] || window.I18N.en)[key];
+  return typeof v === "function" ? v(...args) : (v ?? key);
+};
+
+// Apply the chosen language to all [data-i18n] / [data-i18n-ph] elements.
+function applyLanguage(code) {
+  lang = window.I18N[code] ? code : "en";
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+}
 
 // ---------- config / meta ----------
 async function loadConfig() {
   try {
     const cfg = await (await api("/api/config")).json();
+    applyLanguage(cfg.language || "en");
     const ok = cfg.adapter_available;
     $("#meta").innerHTML =
       `CLI: <b>${cfg.cli_adapter}</b> ${ok ? "✓" : "⚠ not found"} · ` +
       `embedder: ${cfg.embedder} (dim ${cfg.embedder_dim}) · transcriber: ${cfg.transcriber}`;
     renderReprocessBanner(cfg.needs_reprocess, (cfg.stale_source_ids || []).length);
   } catch {
-    $("#meta").textContent = "server unreachable";
+    $("#meta").textContent = t("serverDown");
   }
 }
 
@@ -34,8 +52,8 @@ function renderReprocessBanner(needs, count) {
     $(".sources").insertBefore(banner, $("#source-list"));
   }
   banner.innerHTML =
-    `⚠ ${count} source(s) were embedded with a different model and are excluded ` +
-    `from search. <button id="reprocess-all-btn">Reprocess all</button>`;
+    `⚠ ${t("reprocess", count)} ` +
+    `<button id="reprocess-all-btn">${t("reprocessBtn")}</button>`;
   $("#reprocess-all-btn").onclick = async () => {
     await api("/api/sources/reprocess-all", { method: "POST" });
     refreshSources();
@@ -72,7 +90,7 @@ async function refreshSources() {
         <button class="icon-btn remove" title="Remove">✕</button>
       </div>
       <div class="sub">
-        <span>${s.modality} · ${fmtSize(s.size)} · ${s.chunk_count} chunks</span>
+        <span>${s.modality} · ${fmtSize(s.size)} · ${s.chunk_count} ${t("chunks")}</span>
         ${badge(s.enabled ? s.status : "disabled")}
       </div>
       ${s.error ? `<div class="error-banner">${escapeHtml(s.error)}</div>` : ""}`;
@@ -120,7 +138,7 @@ function renderCitations(citations) {
   lastCitations = citations;
   const box = $("#citations");
   if (!citations.length) {
-    box.innerHTML = `<p class="hint">No sources matched this question.</p>`;
+    box.innerHTML = `<p class="hint">${t("noMatch")}</p>`;
     return;
   }
   box.innerHTML = "";
@@ -150,7 +168,7 @@ $("#chat-form").onsubmit = async (e) => {
   input.value = "";
   $("#send-btn").disabled = true;
   addMessage("user", escapeHtml(message));
-  const out = addMessage("assistant", "<em>thinking…</em>");
+  const out = addMessage("assistant", `<em>${t("thinking")}</em>`);
   let answer = "";
 
   try {
