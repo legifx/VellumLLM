@@ -41,14 +41,18 @@ Everything runs locally; the model is reached through your own CLI.
 
 ```bash
 # from the skill directory
-bash scripts/start.sh
+./vellum
 ```
 
-This provisions a virtualenv, installs the light core dependencies, installs the
-secret-scan git hook, and launches the server. Open the printed URL, paste a
-folder/file path into **Sources**, wait for ingestion, then ask questions.
+First run launches a short setup wizard (provider, language, data folder, port,
+modalities, embeddings, color), writes a commented `.env`, provisions a
+virtualenv with the light core deps, installs the secret-scan git hook, and
+starts the server. Afterwards `./vellum` just starts it. Open the printed URL,
+paste a folder/file path into **Sources**, wait for ingestion, then ask
+questions. Stop with Ctrl-C.
 
-Stop with Ctrl-C.
+Re-run setup any time with `./vellum init --reconfigure`; for CI use
+`./vellum init --yes` plus flags.
 
 ## Configure the CLI bridge
 

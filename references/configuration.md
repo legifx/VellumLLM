@@ -1,14 +1,37 @@
 # Configuration reference
 
+The easiest way to configure Vellum is the wizard:
+
+```bash
+./vellum init                 # guided setup, writes a commented .env
+./vellum init --reconfigure   # change it later
+./vellum init --yes [flags]   # non-interactive (CI / power users)
+```
+
 Configuration resolves in this order (highest precedence first):
 
-1. **Environment variables** (`MMRAG_*`)
-2. **`config.yaml`** in the project root (gitignored; optional)
-3. **Built-in defaults**
+1. **Process environment variables** (`MMRAG_*`, or `VELLUM_*` as an alias)
+2. **`.env`** in the project root (written by the wizard; gitignored)
+3. **`config.yaml`** in the project root (gitignored; optional)
+4. **Built-in defaults**
 
-Copy a template to start: `cp .env.example .env` or
-`cp config.example.yaml config.yaml`. Both real files are gitignored. Never put
-secrets in either — this project needs none.
+You can also start from a template by hand: `cp .env.example .env` or
+`cp config.example.yaml config.yaml`. All real config files are gitignored.
+Never put secrets in any of them — this project needs none.
+
+## Wizard flags
+
+| Flag | Sets |
+|------|------|
+| `--adapter` | provider adapter (`claude-code`/`codex`/`hermes`/`command`) |
+| `--command` | command for the `command` adapter |
+| `--lang` | UI language (`en`/`de`) |
+| `--data-dir` | data folder |
+| `--port` | localhost port |
+| `--modalities` | comma list: `text,image,audio,video` |
+| `--embedder` | `lexical` or `semantic` |
+| `--no-color` / `--ascii` | disable color / force the ASCII brand mark |
+| `--reconfigure` / `--yes` | re-run over an existing `.env` / non-interactive |
 
 ## Variables
 
@@ -17,6 +40,8 @@ secrets in either — this project needs none.
 | `MMRAG_HOST` | `server.host` | `127.0.0.1` | Bind address. Change only with care (see security). |
 | `MMRAG_PORT` | `server.port` | `8008` | Server port. |
 | `MMRAG_DATA_DIR` | `server.data_dir` | `data` | Local data directory (gitignored). |
+| `MMRAG_LANGUAGE` | `server.language` | `en` | UI language (`en` / `de`). |
+| `MMRAG_COLOR` | — | `1` | Color in vellum's terminal banners (`1`/`0`; `NO_COLOR` also disables). |
 | `MMRAG_CLI_ADAPTER` | `cli.adapter` | `claude-code` | `claude-code` \| `hermes` \| `codex` \| `command`. |
 | `MMRAG_CLI_COMMAND` | `cli.command` | — | For the `command` adapter: a CLI that reads a prompt on stdin. |
 | `MMRAG_CLI_TIMEOUT` | `cli.timeout` | `120` | Seconds to wait for the CLI to answer. |

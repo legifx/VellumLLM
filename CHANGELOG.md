@@ -7,6 +7,16 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- **Vellum brand + onboarding.** A `./vellum` launcher with a guided first-run
+  setup (`vellum init`): parchment-over-frame ASCII/ANSI brand mark (with a pure
+  ASCII fallback and `NO_COLOR` support), short well-defaulted questions with
+  validation, a commented `.env` output, repeatable `--reconfigure`, and a
+  non-interactive mode (`--yes` + flags / `VELLUM_*` env) for CI.
+- Automatic `.env` loading and `VELLUM_*` → `MMRAG_*` aliases in config.
+- UI language setting (`en`/`de`) with a small in-app i18n layer.
+- `./vellum doctor` prerequisite check and a redesigned server start banner.
+
+### Added (earlier)
 - Initial release of Local NotebookLM — a local, multimodal, source-grounded
   RAG system packaged as a CLI skill.
 - Multimodal ingestion pipeline: documents (pdf/txt/md/csv/html/docx/pptx),

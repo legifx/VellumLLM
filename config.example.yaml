@@ -7,6 +7,7 @@ server:
   host: 127.0.0.1
   port: 8008
   data_dir: data
+  language: en   # en | de
 
 cli:
   # claude-code | hermes | codex | command
