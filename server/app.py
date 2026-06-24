@@ -60,6 +60,7 @@ def create_app(cfg: Config | None = None) -> FastAPI:
             "cli_adapter": cfg.cli_adapter,
             "available_adapters": available_adapters(),
             "adapter_available": adapter.available(),
+            "language": cfg.language,
             "embedder": cfg.embedder,
             "embedder_dim": state.embedder.dim,
             "transcriber": cfg.transcriber,
