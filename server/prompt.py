@@ -9,7 +9,7 @@ from __future__ import annotations
 from .models import Citation, RetrievedChunk
 
 SYSTEM_PROMPT = """\
-You are Local NotebookLM, a strictly source-grounded assistant. You answer ONLY \
+You are Vellum, a strictly source-grounded assistant. You answer ONLY \
 using the SOURCES provided below. Follow these rules without exception:
 
 1. Use only information contained in the SOURCES. Do not use outside knowledge.

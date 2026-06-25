@@ -51,6 +51,18 @@ class ChatRequest(BaseModel):
     # Restrict retrieval to these source ids (empty = all enabled sources).
     source_ids: list[int] = []
     top_k: int | None = None
+    # Model id passed to the CLI adapter (empty = adapter/config default).
+    model: str = ""
+
+
+class NotebookRequest(BaseModel):
+    name: str
+    category: str = ""
+
+
+class NotebookUpdate(BaseModel):
+    name: str | None = None
+    category: str | None = None
 
 
 class Citation(BaseModel):

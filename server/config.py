@@ -73,6 +73,7 @@ class Config:
     language: str = "en"
 
     cli_adapter: str = "claude-code"
+    model: str = ""           # default model id passed to the adapter (optional)
     cli_command: str = ""
     cli_timeout: int = 120
     claude_bin: str = "claude"
@@ -111,6 +112,7 @@ class Config:
             data_dir=data_dir,
             language=str(_get("MMRAG_LANGUAGE", server, "language", "en")),
             cli_adapter=str(_get("MMRAG_CLI_ADAPTER", cli, "adapter", "claude-code")),
+            model=str(_get("MMRAG_MODEL", cli, "model", "")),
             cli_command=str(_get("MMRAG_CLI_COMMAND", cli, "command", "")),
             cli_timeout=int(_get("MMRAG_CLI_TIMEOUT", cli, "timeout", 120)),
             claude_bin=str(_get("MMRAG_CLAUDE_BIN", cli, "claude_bin", "claude")),
@@ -134,6 +136,11 @@ class Config:
     @property
     def cache_dir(self) -> Path:
         return self.data_dir / "cache"
+
+    @property
+    def notebooks_dir(self) -> Path:
+        """Root that holds one folder per notebook ("Vellum")."""
+        return self.data_dir / "notebooks"
 
     def ensure_dirs(self) -> None:
         self.data_dir.mkdir(parents=True, exist_ok=True)

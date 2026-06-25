@@ -15,47 +15,62 @@ from .base import CLIAdapter, CLIError
 class ClaudeCodeAdapter(CLIAdapter):
     name = "claude-code"
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, model: str = ""):
         self._bin = cfg.claude_bin
+        self._model = model
 
     def command(self) -> list[str]:
         # `claude -p` runs Claude Code in non-interactive print mode, reading
         # the prompt from stdin and streaming the answer to stdout.
-        return [self._bin, "-p"]
+        argv = [self._bin, "-p"]
+        if self._model:
+            argv += ["--model", self._model]
+        return argv
 
 
 class HermesAdapter(CLIAdapter):
     name = "hermes"
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, model: str = ""):
         self._bin = cfg.hermes_bin
+        self._model = model
 
     def command(self) -> list[str]:
         # Hermes is invoked in one-shot mode, prompt on stdin.
-        return [self._bin, "ask", "-"]
+        argv = [self._bin, "ask"]
+        if self._model:
+            argv += ["--model", self._model]
+        argv.append("-")
+        return argv
 
 
 class CodexAdapter(CLIAdapter):
     name = "codex"
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, model: str = ""):
         self._bin = cfg.codex_bin
+        self._model = model
 
     def command(self) -> list[str]:
         # `codex exec` runs a single non-interactive turn; "-" reads stdin.
-        return [self._bin, "exec", "-"]
+        argv = [self._bin, "exec"]
+        if self._model:
+            argv += ["--model", self._model]
+        argv.append("-")
+        return argv
 
 
 class CommandAdapter(CLIAdapter):
     name = "command"
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, model: str = ""):
         if not cfg.cli_command.strip():
             raise CLIError(
                 "MMRAG_CLI_ADAPTER=command requires MMRAG_CLI_COMMAND to be set "
                 "to a CLI that reads a prompt on stdin and writes the answer to "
                 "stdout (e.g. 'my-llm-cli --stdin')."
             )
+        # The generic command bakes in its own model; the picker is ignored.
         self._argv = shlex.split(cfg.cli_command)
 
     def command(self) -> list[str]:
@@ -70,14 +85,14 @@ _REGISTRY = {
 }
 
 
-def build_adapter(cfg: Config) -> CLIAdapter:
+def build_adapter(cfg: Config, model: str = "") -> CLIAdapter:
     key = (cfg.cli_adapter or "claude-code").lower()
     if key not in _REGISTRY:
         raise CLIError(
             f"Unknown CLI adapter '{key}'. Set MMRAG_CLI_ADAPTER to one of: "
             f"{', '.join(_REGISTRY)}."
         )
-    return _REGISTRY[key](cfg)
+    return _REGISTRY[key](cfg, model)
 
 
 def available_adapters() -> list[str]:
