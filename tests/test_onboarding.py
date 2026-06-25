@@ -1,6 +1,10 @@
 import builtins
 
 from server.onboarding import (
+    ADAPTER_OPTS,
+    MODALITY_OPTS,
+    NETWORK_OPTS,
+    NETWORK_WARN,
     Prompter,
     Style,
     _v_modalities,
@@ -79,6 +83,43 @@ def test_run_writes_env_non_interactive(tmp_path, monkeypatch):
     assert got["MMRAG_CLI_ADAPTER"] == "codex"
     assert got["MMRAG_TRANSCRIBER"] == "faster-whisper"  # audio enabled
     assert data.exists()  # data dir created
+
+
+def test_select_by_number_and_default(monkeypatch):
+    p = Prompter(interactive=True, style=Style(False))
+    monkeypatch.setattr(builtins, "input", lambda _="": "2")
+    assert p.select("Provider", "x", ADAPTER_OPTS, "claude-code") == ADAPTER_OPTS[1][0]
+    monkeypatch.setattr(builtins, "input", lambda _="": "")  # Enter -> default
+    assert p.select("Provider", "x", ADAPTER_OPTS, "hermes") == "hermes"
+
+
+def test_select_non_interactive_returns_default():
+    p = Prompter(interactive=False, style=Style(False))
+    assert p.select("Net", "x", NETWORK_OPTS, "0.0.0.0") == "0.0.0.0"
+
+
+def test_select_warns_on_exposed_host(monkeypatch, capsys):
+    p = Prompter(interactive=True, style=Style(False))
+    monkeypatch.setattr(builtins, "input", lambda _="": "2")  # 0.0.0.0
+    chosen = p.select("Net", "x", NETWORK_OPTS, "127.0.0.1", warn_on=NETWORK_WARN)
+    assert chosen == "0.0.0.0"
+    assert "exposes" in capsys.readouterr().out
+
+
+def test_multiselect_forces_text_and_parses_numbers(monkeypatch):
+    p = Prompter(interactive=True, style=Style(False))
+    monkeypatch.setattr(builtins, "input", lambda _="": "3")  # audio only -> text+audio
+    chosen = p.multiselect("Mod", "x", MODALITY_OPTS, ["text"], forced=("text",))
+    assert chosen[0] == "text" and "audio" in chosen
+
+
+def test_run_writes_host_non_interactive(tmp_path, monkeypatch):
+    env = tmp_path / ".env"
+    monkeypatch.setenv("VELLUM_ENV_FILE", str(env))
+    args = build_parser().parse_args(
+        ["--yes", "--host", "0.0.0.0", "--data-dir", str(tmp_path / "d")])
+    assert run(args) == 0
+    assert read_env(env)["MMRAG_HOST"] == "0.0.0.0"
 
 
 def test_reconfigure_prefills_from_existing(tmp_path, monkeypatch):

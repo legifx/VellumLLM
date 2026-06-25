@@ -24,10 +24,39 @@ ADAPTERS = ["claude-code", "codex", "hermes", "command"]
 LANGUAGES = ["en", "de"]
 MODALITIES = ["text", "image", "audio", "video"]
 
+# Option descriptions shown in the clickable menus (so every choice is visible).
+ADAPTER_OPTS = [
+    ("claude-code", "Anthropic Claude Code CLI (`claude`)"),
+    ("codex", "OpenAI Codex CLI (`codex`)"),
+    ("hermes", "Hermes agent CLI (`hermes`) — OpenRouter / Nous models"),
+    ("command", "Any other CLI that reads a prompt on stdin"),
+]
+LANGUAGE_OPTS = [("en", "English"), ("de", "Deutsch")]
+EMBEDDER_OPTS = [
+    ("lexical", "instant, no downloads, dependency-free (hashing)"),
+    ("semantic", "better recall via sentence-transformers (extra install)"),
+]
+MODALITY_OPTS = [
+    ("text", "documents: pdf, txt, md, docx, pptx, csv, html"),
+    ("image", "png, jpg, webp, gif — OCR'd text + filename caption"),
+    ("audio", "mp3, wav, m4a, flac — needs whisper + ffmpeg"),
+    ("video", "mp4, mov, mkv — keyframes + transcription, needs ffmpeg"),
+]
+COLOR_OPTS = [("1", "colored terminal banners"), ("0", "plain, no color")]
+NETWORK_OPTS = [
+    ("127.0.0.1", "Local only — reachable just from this machine (recommended)"),
+    ("0.0.0.0", "Whole network — other devices on your LAN can open it"),
+]
+NETWORK_WARN = {
+    "0.0.0.0": "Heads up: 0.0.0.0 exposes the web UI (and the server file browser) "
+               "to every device on your network. There is no login. Only use this on "
+               "a network you trust.",
+}
+
 # Keys this tool manages in .env. Anything else found is preserved verbatim.
 MANAGED_KEYS = [
     "MMRAG_CLI_ADAPTER", "MMRAG_CLI_COMMAND", "MMRAG_LANGUAGE", "MMRAG_DATA_DIR",
-    "MMRAG_PORT", "MMRAG_EMBEDDER", "MMRAG_TRANSCRIBER", "MMRAG_COLOR",
+    "MMRAG_HOST", "MMRAG_PORT", "MMRAG_EMBEDDER", "MMRAG_TRANSCRIBER", "MMRAG_COLOR",
 ]
 
 
@@ -101,6 +130,80 @@ class Prompter:
                 return True, False
             return False, "answer yes or no"
         return self.ask(label, explain, "yes" if default else "no", validate=_v)
+
+    def select(self, label, explain, options, default, warn_on=None):
+        """Pick ONE option by clicking a number. ``options`` is a list of
+        ``(value, description)``; every choice is shown, so nothing is hidden.
+
+        ``warn_on`` maps a value -> warning string shown after it is chosen.
+        Non-interactive: returns ``default`` (must be a valid value)."""
+        values = [v for v, _ in options]
+        if not self.interactive:
+            chosen = default if default in values else values[0]
+            self._maybe_warn(chosen, warn_on)
+            return chosen
+        while True:
+            print(f"\n{self.s.bold(label)}")
+            print(self.s.dim("  " + explain))
+            for i, (val, desc) in enumerate(options, 1):
+                mark = self.s.accent("●") if val == default else self.s.dim("○")
+                tag = self.s.dim(" (default)") if val == default else ""
+                print(f"  {mark} {self.s.bold(str(i))}) {self.s.bold(val)}{tag}")
+                print(self.s.dim(f"       {desc}"))
+            raw = input(f"  {self.s.accent('>')} {self.s.dim('[' + str(default) + ']')} ").strip()
+            if not raw:
+                self._maybe_warn(default, warn_on)
+                return default
+            if raw.isdigit() and 1 <= int(raw) <= len(values):
+                chosen = values[int(raw) - 1]
+            elif raw in values:
+                chosen = raw
+            else:
+                print(self.s.warn("  pick a number from the list."))
+                continue
+            self._maybe_warn(chosen, warn_on)
+            return chosen
+
+    def _maybe_warn(self, value, warn_on):
+        if warn_on and value in warn_on:
+            print(self.s.warn(f"  {warn_on[value]}"))
+
+    def multiselect(self, label, explain, options, defaults, forced=()):
+        """Pick SEVERAL options by clicking numbers (comma-separated). ``forced``
+        values are always included. Returns the chosen values in option order."""
+        values = [v for v, _ in options]
+        if not self.interactive:
+            chosen = [v for v in values if v in defaults or v in forced]
+            return chosen or list(forced)
+        while True:
+            print(f"\n{self.s.bold(label)}")
+            print(self.s.dim("  " + explain))
+            for i, (val, desc) in enumerate(options, 1):
+                on = val in defaults or val in forced
+                box = self.s.accent("[x]") if on else self.s.dim("[ ]")
+                lock = self.s.dim(" (always on)") if val in forced else ""
+                print(f"  {box} {self.s.bold(str(i))}) {self.s.bold(val)}{lock}")
+                print(self.s.dim(f"       {desc}"))
+            shown = ",".join(str(i) for i, (v, _) in enumerate(options, 1)
+                             if v in defaults or v in forced)
+            raw = input(f"  {self.s.accent('>')} {self.s.dim('[' + shown + ']')} ").strip()
+            picks = [p.strip() for p in raw.replace(" ", ",").split(",") if p.strip()]
+            if not picks:
+                chosen = [v for v in values if v in defaults or v in forced]
+                return chosen or list(forced)
+            sel = set(forced)
+            bad = False
+            for p in picks:
+                if p.isdigit() and 1 <= int(p) <= len(values):
+                    sel.add(values[int(p) - 1])
+                elif p in values:
+                    sel.add(p)
+                else:
+                    bad = True
+            if bad:
+                print(self.s.warn("  use numbers from the list, comma-separated."))
+                continue
+            return [v for v in values if v in sel]
 
 
 # --------------------------------------------------------------------------- #
@@ -185,7 +288,12 @@ def write_env(path: Path, cfg: dict, extra: list[str]) -> None:
     add("# Where your sources, index and cache live (local, gitignored).")
     add(f"MMRAG_DATA_DIR={cfg['data_dir']}")
     add("")
-    add("# localhost port for the web UI.")
+    add("# Network visibility of the web UI:")
+    add("#   127.0.0.1 = local only (recommended)   0.0.0.0 = reachable on your LAN.")
+    add("# 0.0.0.0 exposes the UI and file browser to other devices — no login.")
+    add(f"MMRAG_HOST={cfg.get('host', '127.0.0.1')}")
+    add("")
+    add("# port for the web UI.")
     add(f"MMRAG_PORT={cfg['port']}")
     add("")
     add("# Embeddings: hashing (lexical, no downloads) | sentence-transformers (semantic).")
@@ -238,10 +346,10 @@ def run(args: argparse.Namespace) -> int:
     def d(key, fallback):  # default = prior .env value, else flag, else fallback
         return existing.get(key, fallback)
 
-    # 1) provider / adapter
-    adapter = p.ask(
+    # 1) provider / adapter — clickable list of every option
+    adapter = p.select(
         "Model provider", "Which local CLI should answer questions over your sources.",
-        args.adapter or d("MMRAG_CLI_ADAPTER", "claude-code"), choices=ADAPTERS)
+        ADAPTER_OPTS, args.adapter or d("MMRAG_CLI_ADAPTER", "claude-code"))
     command = args.command or d("MMRAG_CLI_COMMAND", "")
     if adapter == "command":
         def _v_cmd(raw: str):
@@ -255,28 +363,34 @@ def run(args: argparse.Namespace) -> int:
                 f"  note: '{binname}' isn't on PATH yet — install it before chatting."))
 
     # 2) language
-    language = p.ask("Language", "Interface language.",
-                     args.lang or d("MMRAG_LANGUAGE", _default_language()), choices=LANGUAGES)
+    language = p.select("Language", "Interface language.", LANGUAGE_OPTS,
+                        args.lang or d("MMRAG_LANGUAGE", _default_language()))
 
     # 3) data dir
     data_dir = p.ask("Data folder", "Where your sources, index and cache are stored.",
                      args.data_dir or d("MMRAG_DATA_DIR", "data"))
 
-    # 4) port
+    # 4) network visibility — local by default, with a clear exposure warning
+    host = p.select(
+        "Network visibility", "Who can reach the web UI.", NETWORK_OPTS,
+        args.host or d("MMRAG_HOST", "127.0.0.1"), warn_on=NETWORK_WARN)
+
+    # 5) port
     def _v_port_warn(raw: str):
         ok, parsed = _v_port(raw)
         if ok and interactive and not _port_is_free(parsed):
             print(style.warn(f"  heads up: port {parsed} looks busy right now."))
         return ok, parsed
-    port = p.ask("Port", "localhost port for the web UI.",
+    port = p.ask("Port", "port for the web UI.",
                  args.port or int(d("MMRAG_PORT", 8008)), validate=_v_port_warn)
 
-    # 5) modalities
-    mod_default = args.modalities or _modalities_from_env(existing) or "text,image"
-    modalities = p.ask("Modalities", "Comma-separated. Text is always on.",
-                       mod_default, validate=_v_modalities)
+    # 6) modalities — clickable multi-select, text always on
+    mod_defaults = (args.modalities.split(",") if args.modalities
+                    else (_modalities_from_env(existing) or "text,image").split(","))
+    mod_defaults = [m.strip() for m in mod_defaults if m.strip()]
+    modalities = p.multiselect("Modalities", "What kinds of files this Vellum ingests.",
+                               MODALITY_OPTS, mod_defaults, forced=("text",))
     wants_av = any(m in modalities for m in ("audio", "video"))
-    transcriber = d("MMRAG_TRANSCRIBER", "disabled")
     if wants_av:
         transcriber = "faster-whisper"
         if shutil.which("ffmpeg") is None:
@@ -284,24 +398,24 @@ def run(args: argparse.Namespace) -> int:
     else:
         transcriber = "disabled"
 
-    # 6) embeddings
+    # 7) embeddings
     emb_prior = d("MMRAG_EMBEDDER", "hashing")
     emb_default = "semantic" if emb_prior == "sentence-transformers" else "lexical"
-    emb_choice = p.ask("Embeddings", "lexical = instant, no downloads; semantic = better recall.",
-                       args.embedder or emb_default, choices=["lexical", "semantic"])
+    emb_choice = p.select("Embeddings", "How sources are indexed for retrieval.",
+                          EMBEDDER_OPTS, args.embedder or emb_default)
     embedder = "sentence-transformers" if emb_choice == "semantic" else "hashing"
     if embedder == "sentence-transformers" and interactive:
         print(style.dim("  semantic embeddings: run `pip install -r requirements-optional.txt`."))
 
-    # 7) color
-    color_on = p.confirm("Colored output", "Use color in vellum's terminal banners.",
-                         d("MMRAG_COLOR", "1") not in ("0", "false", "no"))
+    # 8) color
+    color_prior = "1" if d("MMRAG_COLOR", "1") not in ("0", "false", "no") else "0"
+    color = p.select("Colored output", "Color in vellum's terminal banners.",
+                     COLOR_OPTS, color_prior)
 
     cfg = {
         "adapter": adapter, "command": command, "language": language,
-        "data_dir": data_dir, "port": port, "modalities": modalities,
-        "transcriber": transcriber, "embedder": embedder,
-        "color": "1" if color_on else "0",
+        "data_dir": data_dir, "host": host, "port": port, "modalities": modalities,
+        "transcriber": transcriber, "embedder": embedder, "color": color,
     }
 
     # write
@@ -330,6 +444,9 @@ def _summary(style: Style, cfg: dict, env_name: str = ".env") -> None:
                                        if cfg["adapter"] == "command" else "")),
         ("language", cfg["language"]),
         ("data folder", cfg["data_dir"]),
+        ("network", cfg.get("host", "127.0.0.1")
+            + ("  (local only)" if cfg.get("host", "127.0.0.1") == "127.0.0.1"
+               else "  (exposed on LAN)")),
         ("port", str(cfg["port"])),
         ("modalities", ", ".join(cfg["modalities"])),
         ("embeddings", "semantic" if cfg["embedder"] == "sentence-transformers" else "lexical"),
@@ -354,7 +471,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--command", help="command for the 'command' adapter")
     ap.add_argument("--lang", choices=LANGUAGES, help="interface language")
     ap.add_argument("--data-dir", help="data folder")
-    ap.add_argument("--port", type=int, help="localhost port")
+    ap.add_argument("--host", choices=["127.0.0.1", "0.0.0.0"],
+                    help="network visibility: 127.0.0.1 (local) or 0.0.0.0 (LAN)")
+    ap.add_argument("--port", type=int, help="web UI port")
     ap.add_argument("--modalities", help="comma list: text,image,audio,video")
     ap.add_argument("--embedder", choices=["lexical", "semantic"], help="embedding quality")
     return ap
