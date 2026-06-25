@@ -7,23 +7,52 @@
   <link rel="stylesheet" href="/static/app.css" />
 </head>
 <body>
+
+<!-- ============================ START SCREEN ============================ -->
+<section id="start-view" class="view start-view">
+  <div class="start-bg" aria-hidden="true"></div>
+  <header class="start-head">
+    <div class="brand-lockup">
+      <span class="brand-mark">❖</span>
+      <div>
+        <div class="brand">Vellum</div>
+        <div class="brand-sub" data-i18n="startTagline">Your private, source-grounded notebooks.</div>
+      </div>
+    </div>
+    <button id="start-theme" class="ghost" title="Toggle theme">◐</button>
+  </header>
+
+  <div class="start-body">
+    <div class="start-titlerow">
+      <h1 data-i18n="chooseVellum">Choose a Vellum</h1>
+      <button id="new-vellum-btn" class="primary-btn">＋ <span data-i18n="newVellum">New Vellum</span></button>
+    </div>
+    <div id="vellum-grid" class="vellum-grid"></div>
+  </div>
+</section>
+
+<!-- ============================ VELLUM VIEW ============================ -->
+<section id="vellum-view" class="view vellum-view hidden">
   <header class="topbar">
-    <div class="brand">Vellum</div>
-    <div class="meta" id="meta" data-i18n="connecting">connecting…</div>
-    <button id="theme-toggle" class="ghost" title="Toggle theme">◐</button>
+    <button id="back-btn" class="ghost" title="Back to all Vellums">‹ <span data-i18n="back">Vellums</span></button>
+    <div class="vellum-title" id="vellum-title">…</div>
+    <div class="topbar-right">
+      <div id="model-picker" class="model-picker"></div>
+      <span id="net-badge" class="net-badge hidden" title=""></span>
+      <button id="theme-toggle" class="ghost" title="Toggle theme">◐</button>
+    </div>
   </header>
 
   <main class="layout">
     <!-- Sources -->
     <section class="panel sources">
-      <h2 data-i18n="sources">Sources</h2>
-      <form id="add-form" class="add-form">
-        <input id="path-input" type="text" data-i18n-ph="addPlaceholder"
-               placeholder="Paste a folder or file path…" />
-        <button type="submit" data-i18n="add">Add</button>
-      </form>
+      <div class="panel-head">
+        <h2 data-i18n="sources">Sources</h2>
+        <button id="add-btn" class="chip-btn">＋ <span data-i18n="add">Add</span></button>
+      </div>
       <p class="hint" data-i18n="sourcesHint">Folders are scanned recursively. All data stays local.</p>
-      <ul id="source-list" class="source-list"></ul>
+      <div id="reprocess-slot"></div>
+      <div id="source-tree" class="source-tree"></div>
     </section>
 
     <!-- Chat -->
@@ -46,8 +75,24 @@
       </div>
     </section>
   </main>
+</section>
 
-  <script src="/static/i18n.js"></script>
-  <script src="/static/app.js"></script>
+<!-- ============================ MODALS ============================ -->
+<div id="modal-root" class="modal-root hidden"></div>
+
+<!-- file preview lightbox -->
+<div id="preview-root" class="preview-root hidden">
+  <div class="preview-backdrop"></div>
+  <div class="preview-box">
+    <div class="preview-head">
+      <span id="preview-name" class="preview-name"></span>
+      <button id="preview-close" class="ghost">✕</button>
+    </div>
+    <div id="preview-body" class="preview-body"></div>
+  </div>
+</div>
+
+<script src="/static/i18n.js"></script>
+<script src="/static/app.js"></script>
 </body>
 </html>
