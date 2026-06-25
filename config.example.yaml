@@ -4,15 +4,18 @@
 # Contains ONLY placeholders — never put secrets here.
 
 server:
-  host: 127.0.0.1
+  host: 127.0.0.1   # 127.0.0.1 = local only (recommended); 0.0.0.0 = whole LAN
   port: 8008
-  data_dir: data
-  language: en   # en | de
+  data_dir: data    # holds one folder per Vellum under data_dir/notebooks/
+  language: en      # en | de
 
 cli:
   # claude-code | hermes | codex | command
   adapter: claude-code
   timeout: 120
+  # Optional default model id, passed to the adapter as --model.
+  # The web UI's model picker overrides this per chat.
+  # model: claude-opus-4-8
   # Only for the "command" adapter:
   # command: my-llm-cli --stdin
 

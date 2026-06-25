@@ -27,7 +27,10 @@ Everything runs locally; the model is reached through your own CLI.
 ## What it does
 
 1. Starts a local server with a browser UI (default <http://127.0.0.1:8008>).
-2. The user adds **folders or files** as sources; an ingestion pipeline extracts
+   The start screen shows all **Vellums** (separate notebooks); pick one or
+   create a new one (name + optional category) to enter it.
+2. Inside a Vellum the user adds **folders or files** via a built-in file
+   browser (no path typing); an ingestion pipeline extracts
    text (PDF text/OCR, image OCR + filename caption, audio transcription, video
    keyframes + transcription), chunks it, and stores embeddings in a **local**
    vector store. (Images are matched via OCR'd text/caption, not a vision model.)
@@ -53,6 +56,37 @@ questions. Stop with Ctrl-C.
 
 Re-run setup any time with `./vellum init --reconfigure`; for CI use
 `./vellum init --yes` plus flags.
+
+## Staying up to date
+
+`./vellum update` fast-forwards to the latest version (git checkout) and
+reinstalls dependencies. On an interactive start, Vellum briefly checks for a
+newer version and asks **Yes/No** before installing it (default No). Set
+`VELLUM_NO_UPDATE_CHECK=1` to disable that check.
+
+## Multiple Vellums & CLI/agent access
+
+Each notebook ("Vellum") is fully isolated — its own folder and index under
+`data/notebooks/<id>/`. Create, rename, sort by category, and delete them from
+the start screen. A CLI agent (or you) can query exactly one Vellum from the
+terminal, grounded only in that Vellum's files:
+
+```bash
+./vellum notebooks                          # list Vellums and their ids
+./vellum ask -n biology-101 "Define osmosis"
+./vellum ask -n "Biology 101" "..." --json  # {answer, citations}
+./vellum ask -n biology-101 "..." --sources-only   # retrieved context, no model
+```
+
+So when told "use the `biology-101` Vellum", an agent runs `vellum ask -n
+biology-101 …` and answers from those documents alone — directly in the CLI.
+
+## Choosing the model
+
+The web UI has a **model picker** (with search) in the top bar; the chosen model
+is passed to your CLI adapter as `--model`. `vellum ask` accepts `--model` too.
+Set a default with `MMRAG_MODEL=…`. Available ids per provider live in
+`server/model_catalog.py` (curated, offline — edit as new models ship).
 
 ## Configure the CLI bridge
 
