@@ -19,6 +19,7 @@ whether to install it. Set VELLUM_NO_UPDATE_CHECK=1 to skip that check.
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -163,18 +164,67 @@ def maybe_offer_update() -> None:
 # --- commands -------------------------------------------------------------
 def cmd_init(args: list[str]) -> int:
     require_python()
-    return subprocess.call([sys.executable, "-m", "server.onboarding", *args], cwd=str(ROOT))
+    rc = subprocess.call([sys.executable, "-m", "server.onboarding", *args], cwd=str(ROOT))
+    # If a venv already exists, check the freshly chosen config's extras now so
+    # the user can install them right after setup, not on first ingestion error.
+    if rc == 0 and venv_python().exists():
+        ensure_optional_deps(venv_python())
+    return rc
 
 
 def cmd_start() -> int:
     maybe_offer_update()
     py = ensure_runtime()
+    ensure_optional_deps(py)
     return subprocess.call([str(py), "-m", "server.main"], cwd=str(ROOT))
 
 
 def cmd_cli(args: list[str]) -> int:
     py = ensure_runtime()
     return subprocess.call([str(py), "-m", "server.cli", *args], cwd=str(ROOT))
+
+
+# --- optional feature dependencies ----------------------------------------
+def ensure_optional_deps(py: Path) -> None:
+    """Check that the extras the active config needs are installed; offer to
+    pip-install any that are missing. Keeps audio/video & semantic embeddings
+    from failing later with 'X is not installed'."""
+    probe = subprocess.run([str(py), "-m", "server.deps"], cwd=str(ROOT),
+                           capture_output=True, text=True)
+    try:
+        rep = json.loads(probe.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return  # never block startup on a probe failure
+    if rep.get("ok"):
+        return
+
+    missing = rep.get("missing_pip") or []
+    if missing:
+        print("\n  Some enabled features need extra packages that aren't installed yet:")
+        for pkg in missing:
+            print(f"    - {pkg}")
+        if sys.stdin.isatty():
+            try:
+                ans = input("  Install them now with pip? [Y/n] ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                ans = "n"
+            if ans in ("", "y", "yes", "j", "ja"):
+                rc = subprocess.call([str(py), "-m", "pip", "install", *missing])
+                if rc == 0:
+                    print("  Installed.")
+                else:
+                    print("  Install failed — run it manually:")
+                    print("    pip install " + " ".join(missing))
+            else:
+                print("  Skipped — those features will error until installed.")
+        else:
+            print("  Install with:  pip install " + " ".join(missing))
+
+    if rep.get("ffmpeg_missing"):
+        print("\n  ! ffmpeg is required for audio/video but was not found on PATH.")
+        print("    Linux:  sudo apt install ffmpeg")
+        print("    macOS:  brew install ffmpeg")
+        print("    Windows: https://ffmpeg.org/download.html  (then add it to PATH)")
 
 
 def cmd_doctor() -> int:
