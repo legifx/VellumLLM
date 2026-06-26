@@ -289,29 +289,44 @@ function closePreview() {
 }
 
 // ============================ add via file browser ============================
-let fbPath = null;
+let fbState = null;   // { path, parent, entries, shortcuts }
 function openFileBrowser() {
   const root = $("#modal-root");
   root.classList.remove("hidden");
   root.innerHTML = `
     <div class="modal-backdrop" data-close></div>
-    <div class="modal-card">
+    <div class="modal-card fb-card">
       <h3>${t("addTitle")}</h3>
       <div class="fb-shortcuts" id="fb-shortcuts"></div>
       <div class="fb-bar">
-        <button class="ghost" id="fb-up">↑ ${t("up")}</button>
-        <span class="fb-path" id="fb-path"></span>
+        <button class="ghost" id="fb-up" title="${t("up")}">↑</button>
+        <input id="fb-pathinput" class="fb-pathinput" placeholder="${t("pathPlaceholder")}" />
+        <button class="ghost" id="fb-go">${t("goBtn")}</button>
+        <button class="chip-btn" id="fb-add-path" title="${t("addPathTip")}">＋</button>
+      </div>
+      <div class="fb-bar">
+        <input id="fb-filter" class="fb-filter" placeholder="${t("searchPlaceholder")}" />
+        <button class="ghost" id="fb-search">${t("searchBtn")}</button>
       </div>
       <div class="fb-list" id="fb-list"></div>
-      <p class="fb-hint">${t("addHint")}</p>
+      <p class="fb-hint" id="fb-hint">${t("addHint")}</p>
       <div class="modal-actions">
         <button class="ghost" data-close>${t("cancel")}</button>
         <button class="primary-btn" id="fb-add-current">${t("addThisFolder")}</button>
       </div>
     </div>`;
   root.querySelectorAll("[data-close]").forEach((el) => (el.onclick = closeModal));
-  $("#fb-up").onclick = () => { if (fbPath?.parent) browseTo(fbPath.parent); };
-  $("#fb-add-current").onclick = () => addPaths([fbPath.path]);
+  $("#fb-up").onclick = () => { if (fbState?.parent) browseTo(fbState.parent); };
+  $("#fb-add-current").onclick = () => fbState && addPaths([fbState.path]);
+  $("#fb-go").onclick = () => browseTo($("#fb-pathinput").value.trim() || null);
+  $("#fb-add-path").onclick = () => {
+    const p = $("#fb-pathinput").value.trim();
+    if (p) addPaths([p]);
+  };
+  $("#fb-pathinput").onkeydown = (e) => { if (e.key === "Enter") $("#fb-go").click(); };
+  $("#fb-filter").oninput = applyFilter;
+  $("#fb-filter").onkeydown = (e) => { if (e.key === "Enter") searchHere(); };
+  $("#fb-search").onclick = searchHere;
   browseTo(null);
 }
 
@@ -327,27 +342,68 @@ async function browseTo(path) {
     $("#fb-list").innerHTML = `<div class="fb-row fb-warn">${escapeHtml(String(e.message || e))}</div>`;
     return;
   }
-  fbPath = data;
-  $("#fb-path").textContent = data.path;
+  fbState = data;
+  $("#fb-pathinput").value = data.path;
   $("#fb-up").disabled = !data.parent;
+  $("#fb-filter").value = "";
+  $("#fb-hint").textContent = t("addHint");
 
   const sc = $("#fb-shortcuts");
   sc.innerHTML = "";
   (data.shortcuts || []).forEach((s) => {
     const b = document.createElement("button");
-    b.className = "chip-btn"; b.textContent = s.label;
+    b.className = "chip-btn"; b.textContent = s.label; b.title = s.path;
     b.onclick = () => browseTo(s.path);
     sc.appendChild(b);
   });
+  renderFbRows(data.entries, false);
+}
 
+// Instant client-side filter of the current folder listing.
+function applyFilter() {
+  if (!fbState) return;
+  const q = $("#fb-filter").value.trim().toLowerCase();
+  const rows = q
+    ? fbState.entries.filter((e) => e.name.toLowerCase().includes(q))
+    : fbState.entries;
+  renderFbRows(rows, false);
+}
+
+// Recursive server-side search under the current folder (bounded, fast).
+async function searchHere() {
+  if (!fbState) return;
+  const q = $("#fb-filter").value.trim();
+  if (!q) { applyFilter(); return; }
+  $("#fb-list").innerHTML = `<div class="fb-row">${t("searching")}</div>`;
+  try {
+    const u = new URL("/api/fs/search", location.origin);
+    u.searchParams.set("path", fbState.path);
+    u.searchParams.set("q", q);
+    const res = await api(u);
+    if (!res.ok) throw new Error((await res.json()).detail);
+    const data = await res.json();
+    renderFbRows(data.results, true);
+    $("#fb-hint").textContent = data.results.length
+      ? (data.truncated ? t("searchTruncated", data.results.length) : t("searchHits", data.results.length))
+      : t("searchNoHits");
+  } catch (e) {
+    $("#fb-list").innerHTML = `<div class="fb-row fb-warn">${escapeHtml(String(e.message || e))}</div>`;
+  }
+}
+
+function renderFbRows(entries, searchMode) {
   const list = $("#fb-list");
   list.innerHTML = "";
-  if (!data.entries.length) list.innerHTML = `<div class="fb-row">${t("emptyFolder")}</div>`;
-  for (const e of data.entries) {
+  if (!entries.length) {
+    list.innerHTML = `<div class="fb-row">${t("emptyFolder")}</div>`;
+    return;
+  }
+  for (const e of entries) {
     const row = document.createElement("div");
     row.className = "fb-row" + (e.is_dir ? "" : " is-file");
+    const sub = searchMode ? `<span class="fb-sub" title="${escapeHtml(e.path)}">${escapeHtml(folderOf(e.path))}</span>` : "";
     row.innerHTML = `<span class="fb-ic">${e.is_dir ? "📁" : "📄"}</span>
-      <span>${escapeHtml(e.name)}</span>
+      <span class="fb-nm">${escapeHtml(e.name)}</span>${sub}
       ${e.is_dir ? `<span class="fb-pick">${t("open")} ›</span>`
                  : `<span class="fb-pick">＋ ${t("addFile")}</span>`}`;
     row.onclick = () => (e.is_dir ? browseTo(e.path) : addPaths([e.path]));

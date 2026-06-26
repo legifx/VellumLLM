@@ -132,6 +132,13 @@ def create_app(cfg: Config | None = None) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
+    @app.get("/api/fs/search")
+    def fs_search(path: str | None = None, q: str = "", limit: int = 200):
+        try:
+            return fsbrowse.search_dir(path, q, limit=min(max(limit, 1), 500))
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
     # ---- notebooks (Vellums) --------------------------------------------
     @app.get("/api/notebooks")
     def list_notebooks():
