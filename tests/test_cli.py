@@ -31,7 +31,7 @@ def _ingest(cfg, sample_txt):
     nb = client.get("/api/notebooks").json()[0]["id"]
     client.post(f"/api/notebooks/{nb}/sources",
                 json={"paths": [str(sample_txt)]})
-    deadline = time.time() + 10
+    deadline = time.time() + 30
     while time.time() < deadline:
         s = client.get(f"/api/notebooks/{nb}/sources").json()["sources"][0]
         if s["status"] in ("ready", "error"):

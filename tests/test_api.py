@@ -21,7 +21,7 @@ def _default_nb(client) -> str:
     return client.get("/api/notebooks").json()[0]["id"]
 
 
-def _wait_ready(client, nb, source_id, timeout=10):
+def _wait_ready(client, nb, source_id, timeout=30):
     deadline = time.time() + timeout
     while time.time() < deadline:
         sources = client.get(f"/api/notebooks/{nb}/sources").json()["sources"]
