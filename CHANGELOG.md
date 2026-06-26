@@ -7,6 +7,16 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- **Dependency doctor.** The launcher checks on every start (and right after
+  onboarding) whether the extras the active config needs — `faster-whisper` /
+  `openai-whisper` for audio/video, `sentence-transformers` for semantic
+  embeddings, plus `ffmpeg` — are installed, and offers to pip-install the
+  missing ones after a Yes/No prompt. No more "faster-whisper is not installed"
+  surprises at ingestion time.
+- **Stronger file picker.** Browse the whole machine (every drive / filesystem
+  root, not just home), paste or type a full path to jump to or add it directly,
+  filter the current folder instantly, and run a bounded recursive search across
+  a folder by name (`GET /api/fs/search`).
 - **Cross-platform launcher (Windows support).** Launcher logic moved into a
   single `vellum.py`, with thin OS shims: `vellum` (bash) for macOS/Linux and
   `vellum.cmd` for Windows — so `vellum` / `.\vellum` works in PowerShell and
