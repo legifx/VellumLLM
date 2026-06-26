@@ -43,11 +43,14 @@ Everything runs locally; the model is reached through your own CLI.
 ## Quick start
 
 ```bash
-# from the skill directory
+# from the skill directory (macOS/Linux)
 ./vellum
+# on Windows (PowerShell/cmd): vellum   or   .\vellum
 ```
 
-First run launches a short setup wizard (provider, language, data folder, port,
+The launcher is cross-platform: a small `vellum.py` holds the logic, with
+`vellum` (bash) and `vellum.cmd` (Windows) as thin shims. First run launches a
+short setup wizard (provider, language, network visibility, data folder, port,
 modalities, embeddings, color), writes a commented `.env`, provisions a
 virtualenv with the light core deps, installs the secret-scan git hook, and
 starts the server. Afterwards `./vellum` just starts it. Open the printed URL,

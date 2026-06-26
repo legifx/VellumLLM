@@ -1,178 +1,23 @@
 #!/usr/bin/env bash
-# Vellum — one command to set it up and run it.
-#
-#   ./vellum              first run sets up, then starts; afterwards just starts
-#   ./vellum init         (re)run the guided setup        (flags: --reconfigure, --yes, ...)
-#   ./vellum start        start the local server
-#   ./vellum notebooks    list your Vellums and their ids
-#   ./vellum ask -n <id> "question"   answer a question from one Vellum (CLI)
-#   ./vellum update       fetch and install the latest version (git)
-#   ./vellum doctor       check prerequisites
+# Vellum launcher (macOS/Linux). Thin shim — all logic lives in vellum.py so the
+# same behaviour runs on every platform. Windows uses vellum.cmd instead.
+#   ./vellum            first run sets up, then starts; afterwards just starts
+#   ./vellum init       guided setup     ./vellum ask -n <id> "q"   query one Vellum
+#   ./vellum start      start the server ./vellum notebooks         list Vellums
+#   ./vellum update     self-update      ./vellum doctor            check prereqs
 #   ./vellum --help
-#
-# On an interactive start Vellum briefly checks for a newer version and asks
-# whether to install it. Set VELLUM_NO_UPDATE_CHECK=1 to skip that check.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT"
-VENV="$ROOT/.venv"
 
-# --- pick a Python (3.10+) ------------------------------------------------
-pick_python() {
-  if [ -n "${PYTHON:-}" ]; then echo "$PYTHON"; return; fi
-  for c in python3.12 python3.11 python3.10 python3; do
-    if command -v "$c" >/dev/null 2>&1; then
-      "$c" - <<'PY' >/dev/null 2>&1 && { echo "$c"; return; }
-import sys; sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)
-PY
-    fi
-  done
-  return 1
-}
-
-require_python() {
-  if ! PY="$(pick_python)"; then
-    echo "Vellum needs Python 3.10 or newer, but none was found." >&2
-    echo "Install it (e.g. 'sudo apt install python3.11') and try again." >&2
-    exit 1
+# Pick a Python 3.10+ to bootstrap the launcher (it creates the venv itself).
+for c in "${PYTHON:-}" python3.12 python3.11 python3.10 python3 python; do
+  [ -n "$c" ] || continue
+  if command -v "$c" >/dev/null 2>&1 && \
+     "$c" -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)' 2>/dev/null; then
+    exec "$c" "$ROOT/vellum.py" "$@"
   fi
-}
+done
 
-# --- ensure venv + core deps for running the server -----------------------
-ensure_runtime() {
-  require_python
-  if [ ! -d "$VENV" ]; then
-    echo "Creating virtualenv (.venv)…"
-    "$PY" -m venv "$VENV"
-  fi
-  # shellcheck disable=SC1091
-  source "$VENV/bin/activate"
-  if ! python -c "import fastapi, uvicorn" >/dev/null 2>&1; then
-    echo "Installing core dependencies…"
-    pip install -q --upgrade pip
-    pip install -q -r requirements.txt
-  fi
-  [ -d "$ROOT/.git" ] && bash "$ROOT/scripts/install-hooks.sh" >/dev/null 2>&1 || true
-}
-
-cmd_doctor() {
-  require_python
-  echo "Python:  $("$PY" --version 2>&1)  ($PY)"
-  if command -v ffmpeg >/dev/null 2>&1; then
-    echo "ffmpeg:  $(ffmpeg -version 2>&1 | head -1 | cut -d' ' -f1-3)  (audio/video ready)"
-  else
-    echo "ffmpeg:  not found  (only needed for audio/video ingestion)"
-  fi
-  if [ -f "$ROOT/.env" ]; then echo "Config:  .env present"; else echo "Config:  not set up yet — run ./vellum init"; fi
-}
-
-cmd_init() { require_python; "$PY" -m server.onboarding "$@"; }
-
-cmd_start() {
-  maybe_offer_update
-  ensure_runtime
-  exec python -m server.main
-}
-
-# Run the single-Vellum CLI (ask / notebooks). Needs the runtime venv.
-cmd_cli() {
-  ensure_runtime
-  exec python -m server.cli "$@"
-}
-
-# --- self-update (git) ----------------------------------------------------
-REMOTE="${VELLUM_REMOTE:-origin}"
-
-is_git() { [ -d "$ROOT/.git" ] && command -v git >/dev/null 2>&1; }
-
-current_branch() { git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null; }
-
-# Fetch from the remote, but never hang the start: cap it with `timeout`.
-git_fetch() {
-  if command -v timeout >/dev/null 2>&1; then
-    timeout 10 git -C "$ROOT" fetch --quiet "$REMOTE" 2>/dev/null
-  else
-    git -C "$ROOT" fetch --quiet "$REMOTE" 2>/dev/null
-  fi
-}
-
-# How many commits the upstream is ahead (echoes a number; 0 if up to date /
-# no upstream). Does NOT fetch — call git_fetch first.
-commits_behind() {
-  git -C "$ROOT" rev-parse '@{u}' >/dev/null 2>&1 || { echo 0; return; }
-  git -C "$ROOT" rev-list --count 'HEAD..@{u}' 2>/dev/null || echo 0
-}
-
-# Pull the latest version (fast-forward only) and refresh dependencies.
-do_update() {
-  local branch; branch="$(current_branch)"
-  echo "Updating Vellum ($branch)…"
-  if ! git -C "$ROOT" pull --ff-only "$REMOTE" "$branch"; then
-    echo "Automatic update failed — you may have local changes." >&2
-    echo "Resolve them with git (e.g. 'git stash') and run ./vellum update again." >&2
-    return 1
-  fi
-  ensure_runtime           # reinstall in case requirements changed
-  echo "Vellum is up to date."
-}
-
-cmd_update() {
-  if ! is_git; then
-    echo "This Vellum isn't a git checkout, so it can't self-update." >&2
-    echo "Reinstall the latest version from https://github.com/legifx/VellumLLM" >&2
-    return 1
-  fi
-  echo "Checking for updates…"
-  if ! git_fetch; then
-    echo "Couldn't reach the remote (offline?). Try again later." >&2
-    return 1
-  fi
-  if [ "$(commits_behind)" -gt 0 ]; then
-    do_update
-  else
-    echo "Already on the latest version."
-  fi
-}
-
-# Offer an update at the start of an interactive session (Yes/No).
-maybe_offer_update() {
-  [ "${VELLUM_NO_UPDATE_CHECK:-0}" = "1" ] && return 0
-  is_git || return 0
-  [ -t 0 ] || return 0           # only prompt on an interactive terminal
-  git_fetch || return 0          # silent on network failure
-  local behind; behind="$(commits_behind)"
-  [ "$behind" -gt 0 ] || return 0
-  echo ""
-  echo "  ↑ A new Vellum version is available ($behind commit(s) behind)."
-  printf "  Install it now? [y/N] "
-  local ans; read -r ans || return 0
-  case "$ans" in
-    y|Y|yes|Yes|j|J|ja|Ja)
-      do_update || { echo "  Continuing with the current version."; return 0; }
-      # Re-exec the freshly updated launcher so the new code takes effect.
-      # Skip the re-check on the relaunch (we just updated).
-      VELLUM_NO_UPDATE_CHECK=1 exec "$ROOT/vellum" start ;;
-    *) echo "  Skipped. Run ./vellum update whenever you like." ;;
-  esac
-}
-
-cmd_help() {
-  # print the leading comment block (after the shebang), stripped of '# '
-  awk 'NR>1 && /^#/{sub(/^# ?/,"");print; next} NR>1{exit}' "$ROOT/vellum"
-}
-
-# --- dispatch -------------------------------------------------------------
-case "${1:-}" in
-  init)            shift; cmd_init "$@" ;;
-  start)           shift; cmd_start ;;
-  ask)             shift; cmd_cli ask "$@" ;;
-  notebooks|nb)    shift; cmd_cli notebooks "$@" ;;
-  update)          shift; cmd_update ;;
-  doctor)          shift; cmd_doctor ;;
-  -h|--help|help)  cmd_help ;;
-  "")
-    if [ ! -f "$ROOT/.env" ]; then cmd_init; fi
-    cmd_start
-    ;;
-  *) echo "Unknown command: $1" >&2; cmd_help; exit 2 ;;
-esac
+echo "Vellum needs Python 3.10 or newer, but none was found." >&2
+echo "Install it (e.g. 'sudo apt install python3.11') and try again." >&2
+exit 1

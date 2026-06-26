@@ -1,0 +1,8 @@
+# Keep the bash launcher and shell scripts LF even on Windows checkouts,
+# or they won't run under Git Bash / WSL.
+vellum         text eol=lf
+*.sh           text eol=lf
+*.py           text eol=lf
+# Windows batch must be CRLF.
+*.cmd          text eol=crlf
+*.bat          text eol=crlf

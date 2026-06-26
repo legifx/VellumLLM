@@ -21,7 +21,15 @@ machine. Nothing is uploaded.
 ```bash
 git clone https://github.com/legifx/VellumLLM.git
 cd VellumLLM
-./vellum            # guided setup, then opens at http://127.0.0.1:8008
+./vellum            # macOS/Linux — guided setup, then opens at http://127.0.0.1:8008
+```
+
+On **Windows** (PowerShell or cmd) run `vellum` instead of `./vellum`:
+
+```powershell
+git clone https://github.com/legifx/VellumLLM.git
+cd VellumLLM
+vellum              # or .\vellum  — same wizard, opens in your browser
 ```
 
 ---
@@ -60,6 +68,10 @@ Other commands:
 
 **Prerequisites:** Python 3.10+. `ffmpeg` only if you want audio/video.
 `./vellum doctor` tells you what's missing in plain language.
+
+> **Windows:** use `vellum` / `.\vellum` (it runs `vellum.cmd`) — not `./vellum`,
+> which Windows can't execute. Install Python from python.org with *“Add to
+> PATH”* checked. Git Bash and WSL can use `./vellum` as on Linux.
 
 ---
 

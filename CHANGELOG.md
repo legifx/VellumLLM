@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- **Cross-platform launcher (Windows support).** Launcher logic moved into a
+  single `vellum.py`, with thin OS shims: `vellum` (bash) for macOS/Linux and
+  `vellum.cmd` for Windows — so `vellum` / `.\vellum` works in PowerShell and
+  cmd.exe, not just bash. A `.gitattributes` pins the bash launcher to LF.
 - **Self-update.** `./vellum update` fast-forwards to the latest version (git)
   and reinstalls dependencies. On an interactive start Vellum briefly checks the
   remote and, if a newer version exists, asks **Yes/No** before installing
