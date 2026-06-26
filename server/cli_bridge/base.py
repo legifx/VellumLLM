@@ -47,15 +47,25 @@ class CLIAdapter(ABC):
         assert proc.stdin and proc.stdout
         proc.stdin.write(prompt)
         proc.stdin.close()
+        # Keep a small tail of stdout: some CLIs (e.g. `claude`) print their
+        # error message to stdout and still exit non-zero, leaving stderr empty.
+        tail: list[str] = []
         try:
-            yield from proc.stdout
+            for line in proc.stdout:
+                tail.append(line)
+                if len(tail) > 40:
+                    tail.pop(0)
+                yield line
             proc.wait(timeout=timeout)
         except subprocess.TimeoutExpired as exc:
             proc.kill()
             raise CLIError(f"CLI '{self.name}' timed out after {timeout}s.") from exc
         if proc.returncode not in (0, None):
             err = (proc.stderr.read() if proc.stderr else "").strip()
-            raise CLIError(f"CLI '{self.name}' exited with {proc.returncode}: {err[:500]}")
+            if not err:  # fall back to whatever the CLI printed on stdout
+                err = "".join(tail).strip()
+            detail = f": {err[:500]}" if err else " (no output)."
+            raise CLIError(f"CLI '{self.name}' exited with {proc.returncode}{detail}")
 
     def complete(self, prompt: str, timeout: int = 120) -> str:
         return "".join(self.stream(prompt, timeout=timeout))
